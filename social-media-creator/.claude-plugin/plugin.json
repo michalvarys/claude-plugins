@@ -1,0 +1,17 @@
+{
+  "author": {
+    "name": "Michal Varys"
+  },
+  "description": "Create branded social media content — static posts, animated videos, carousels, voiceovers, background music — with scheduling and automated publishing pipelines. Designed for the 'Start a Business' brand (@michalvarys.eu).",
+  "keywords": [
+    "social-media",
+    "content-creation",
+    "video",
+    "marketing",
+    "publishing",
+    "scheduling",
+    "automation"
+  ],
+  "name": "social-media-creator",
+  "version": "0.6.1"
+}
