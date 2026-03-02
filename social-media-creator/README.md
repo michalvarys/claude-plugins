@@ -13,8 +13,9 @@ Designed for the **Start a Business** brand (@michalvarys.eu).
 | **create-carousel** | Design multi-slide carousel posts |
 | **generate-voiceover** | Generate voiceover audio via ElevenLabs TTS (Czech/English) |
 | **generate-background-music** | Generate ambient background music via ElevenLabs Sound Effects API |
-| **publish-post** | Publish posts across platforms via upload-post.com API |
-| **schedule-post** | Schedule posts and create automated content pipelines |
+| **publish-post** | Publish posts across Instagram, Threads, TikTok, Facebook & YouTube via upload-post.com API |
+| **schedule-post** | Schedule posts via API native scheduling (`scheduled_date`) and create automated content pipelines |
+| **validate-video** | Validate rendered videos for quality issues (overlaps, overflow, voiceover sync) |
 
 ## Commands
 
@@ -24,7 +25,8 @@ Designed for the **Start a Business** brand (@michalvarys.eu).
 | `/new-video <topic>` | Create an animated video post |
 | `/new-carousel <topic>` | Create a multi-slide carousel |
 | `/create-video-post <topic>` | **Full pipeline**: animated video + voiceover + background music |
-| `/publish <image>` | Publish to Instagram, Threads & TikTok |
+| `/publish <media>` | Publish to Instagram, Threads, TikTok, Facebook & YouTube |
+| `/validate-video <mp4>` | Validate a video for quality issues before publishing |
 | `/schedule <action>` | Schedule a post or set up automated publishing |
 
 ## Requirements
