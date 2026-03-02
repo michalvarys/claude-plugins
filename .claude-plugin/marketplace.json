@@ -1,0 +1,18 @@
+{
+  "name": "varyshop-plugins",
+  "owner": {
+    "name": "Michal Varys"
+  },
+  "plugins": [
+    {
+      "name": "odoo-dev-toolkit",
+      "source": "./odoo-dev-toolkit",
+      "description": "Complete toolkit for Odoo 18 development — QWeb website pages, module scaffolding, XML views, Python models, controllers, and wizards."
+    },
+    {
+      "name": "social-media-creator",
+      "source": "./social-media-creator",
+      "description": "Create branded social media content — static posts, animated videos, carousels, voiceovers, background music — with scheduling and automated publishing pipelines."
+    }
+  ]
+}
