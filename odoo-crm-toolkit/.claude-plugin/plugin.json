@@ -1,0 +1,9 @@
+{
+  "name": "odoo-crm-toolkit",
+  "version": "0.1.0",
+  "description": "Complete Odoo 18 CRM & marketing toolkit — manage contacts, CRM opportunities, mailing campaigns, email/SMS templates, customer order analysis, and automated prospect website generation via XML-RPC API.",
+  "author": {
+    "name": "Michal Varys"
+  },
+  "keywords": ["odoo", "crm", "mailing", "xmlrpc", "marketing", "sms", "email", "qweb", "res.partner", "odoo18"]
+}
