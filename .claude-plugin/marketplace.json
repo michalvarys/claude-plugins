@@ -28,6 +28,11 @@
       "name": "odoo-mass-mailing-toolkit",
       "source": "./odoo-mass-mailing-toolkit",
       "description": "Complete toolkit for Odoo 18 mass mailing — email campaigns, segmentation, automation, and analytics."
+    },
+    {
+      "name": "odoo-content-toolkit",
+      "source": "./odoo-content-toolkit",
+      "description": "Complete toolkit for Odoo 18 content creation — static pages, dynamic content, media management, and publishing workflows."
     }
   ]
 }
