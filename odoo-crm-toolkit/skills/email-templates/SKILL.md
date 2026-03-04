@@ -141,6 +141,112 @@ The body_html field accepts full HTML. Design emails with inline CSS (email clie
 </html>
 ```
 
+## Odoo Mailing Editor Block Structure (body_arch)
+
+When setting `body_arch`, the HTML MUST follow Odoo's mailing editor structure so blocks are editable/draggable in the Odoo editor. Without these classes, blocks appear greyed out with "this block cannot be dropped anywhere".
+
+### Required Wrapper Structure
+
+```html
+<div class="o_layout oe_unremovable oe_unmovable bg-200" data-name="Mailing"
+     style="background-color: #f5f5f5; padding: 0;">
+  <div class="container o_mail_wrapper o_mail_regular oe_unremovable"
+       style="max-width: 600px; margin: 0 auto;">
+    <div class="row">
+      <div class="col o_mail_no_options o_mail_wrapper_td oe_structure"
+           style="padding: 0;">
+
+        <!-- EDITABLE BLOCKS GO HERE -->
+
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+### Editable Block Classes
+
+Every content block MUST have class `o_mail_snippet_general` plus a block-type class:
+
+- `s_text_block` — text paragraph/heading
+- `s_call_to_action` — CTA button section
+- `s_three_columns` — 3-column layout
+- `s_cover` — hero/cover with background image
+- `s_features` — feature cards with icons
+- `s_image_text` — image + text side by side
+
+### View Online Block
+
+Add as the FIRST block inside the structure:
+
+```html
+<div class="o_snippet_view_in_browser o_mail_snippet_general"
+     style="text-align: center; padding: 8px; font-size: 12px;">
+  <a t-att-href="'/mailing/' + str(object.mailing_id.id) + '/view'"
+     style="color: #999; text-decoration: underline;">
+    Zobrazit v prohlížeči
+  </a>
+</div>
+```
+
+### Example Editable Block
+
+```html
+<div class="s_text_block o_mail_snippet_general" style="padding: 24px 40px;">
+  <div class="container s_allow_columns">
+    <div class="row">
+      <div class="col-lg-12">
+        <h2 style="color: #1a1a2e; font-size: 22px;">Editable Heading</h2>
+        <p style="color: #4a5568; font-size: 15px; line-height: 1.6;">
+          Editable paragraph text...
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+### CTA Button Block
+
+```html
+<div class="s_call_to_action o_mail_snippet_general o_cc o_cc3"
+     style="padding: 24px 40px; text-align: center;">
+  <div class="container s_allow_columns">
+    <a href="https://michalvarys.eu/page"
+       class="btn btn-primary btn-lg"
+       style="display: inline-block; padding: 14px 28px; background: #2563eb;
+              color: #fff; text-decoration: none; border-radius: 8px;
+              font-weight: 600;">
+      Zobrazit nabídku
+    </a>
+  </div>
+</div>
+```
+
+### Footer Block with Unsubscribe
+
+```html
+<div class="o_mail_snippet_general" data-name="Footer"
+     style="padding: 20px 40px; text-align: center; background: #1a1a2e;">
+  <p style="color: #a0aec0; font-size: 12px; margin: 0 0 8px;">
+    Michal Varyš | michalvarys.eu
+  </p>
+  <p style="color: #718096; font-size: 11px; margin: 0;">
+    <a t-att-href="'/mailing/' + str(object.mailing_id.id) + '/unsubscribe'"
+       style="color: #718096; text-decoration: underline;">Odhlásit se</a>
+  </p>
+</div>
+```
+
+### CRITICAL: Set BOTH body_arch AND body_html
+
+```python
+models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'write', [[mailing_id], {
+    'body_arch': email_with_odoo_classes,  # Editor version with o_mail_snippet_general
+    'body_html': email_with_odoo_classes,  # Same HTML for sending
+}])
+```
+
 ## Email Design Rules
 
 ### Inline CSS Only

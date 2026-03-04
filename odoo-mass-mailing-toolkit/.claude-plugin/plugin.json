@@ -1,0 +1,9 @@
+{
+  "name": "odoo-mass-mailing",
+  "version": "1.0.0",
+  "description": "Odoo 18 mass-mailing toolkit s analýzou nákupních dat (pos.order + sale.order) — segmentace zákazníků podle nákupních vzorců, personalizované SMS a emailové kampaně založené na prodejní psychologii, automatická tvorba mailing listů a draft kampaní přes XML-RPC API.",
+  "author": {
+    "name": "Michal Varys"
+  },
+  "keywords": ["odoo", "mass-mailing", "sms", "email", "pos.order", "sale.order", "segmentace", "rfm", "marketing", "xmlrpc", "personalizace", "qweb", "res.partner", "odoo18", "purchase-analysis"]
+}

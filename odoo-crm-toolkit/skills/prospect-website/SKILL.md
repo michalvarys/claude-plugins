@@ -164,10 +164,78 @@ Use the `odoo-qweb-page` skill patterns from `odoo-dev-toolkit` to create a prof
 - Use `website.layout` with `page.layout` structure
 - Be published (`website_published: True`)
 - NOT be in menu (don't create `website.menu` entry)
-- Match the company's industry and style
-- Include sections: Hero, Services/Offer, Why Us, Pricing overview, CTA
+- Match the company's industry and style (see Industry-Specific Design below)
+- Include sections: Hero, Photos, Stats, Menu/Services, Why Us, Pricing, Contact/CTA
 - Have full SEO meta tags and JSON-LD
 - Be visually impressive — this IS the sales pitch
+- Contain REAL photos of the business (see Photo Sourcing below)
+- Use scroll animations (IntersectionObserver + fade-in classes)
+- Hide Odoo header/footer via CSS (`header.o_header, footer.o_footer { display:none !important; }`)
+
+#### Industry-Specific Design Guidelines
+
+The web preview style MUST match the target company's industry. Analyze the company type and select appropriate design:
+
+**Restaurants / Cafes / Bars:**
+- Colors: Warm cream (#FDF8F0), warm beige (#F5EDE0), gold (#B8860B), dark brown (#3D2B1F)
+- Fonts: Playfair Display (headings) + DM Sans (body)
+- Sections: Hero with interior photo, Food gallery, Stats, Menu preview with prices, Features, Pricing, Contact
+- Style: Elegant, warm, inviting, light backgrounds
+
+**Tech / SaaS / IT:**
+- Colors: Dark (#0a0a0f), electric blue (#3B82F6), accent (#60a5fa), text-muted (#a0aec0)
+- Fonts: Inter (headings + body)
+- Sections: Hero with product mockup, Features grid, Stats/metrics, Integrations, Pricing tiers, CTA
+- Style: Modern, dark theme, clean lines, tech feel
+
+**Hotels / Accommodation:**
+- Colors: Dark navy (#1A1A22), warm red (#E06060), gold accent, cream
+- Fonts: Playfair Display + DM Sans
+- Sections: Hero slider, Rooms gallery, Amenities, Location map, Reviews, Booking CTA
+- Style: Luxurious, photo-heavy, sophisticated
+
+**Retail / E-commerce:**
+- Colors: Clean white, brand accent color, soft gray backgrounds
+- Fonts: Modern sans-serif
+- Sections: Hero with product showcase, Categories, Featured products, Reviews, Why shop with us
+- Style: Clean, product-focused, trustworthy
+
+**Services / Consulting:**
+- Colors: Professional blue/navy, white, subtle accents
+- Fonts: Clean sans-serif
+- Sections: Hero, Services list, Process/How it works, Team, Testimonials, Contact
+- Style: Professional, trust-building, expertise-focused
+
+**Healthcare / Medical:**
+- Colors: Calming blue/green, white, clean
+- Sections: Hero, Services, Team/doctors, Certifications, Location, Contact
+- Style: Clean, trustworthy, calming
+
+#### Photo Sourcing for Web Preview
+
+Search for REAL photos of the business from these sources (in priority order):
+
+1. **Google Maps** — business profile photos, street view
+2. **restaurantguru.com** — for restaurants (high quality food/interior photos)
+3. **firmy.cz** — Czech business directory with photos
+4. **Facebook/Instagram** — business page photos (public only)
+5. **TripAdvisor** — for hospitality/restaurants
+6. **Company's own website** — existing images
+
+**Search strategy:**
+```
+# Web search for photos
+"{company_name}" site:restaurantguru.com  # for restaurants
+"{company_name}" site:firmy.cz           # for any Czech business
+"{company_name}" photos interior food     # general search
+```
+
+Use found image URLs directly in the template (hotlinking). Place photos in:
+- Hero background (interior/exterior shot)
+- Photo gallery grids (food/products/services)
+- Section backgrounds with overlay
+
+If no real photos found, use generic industry-appropriate placeholders and note this in the output summary.
 
 **Create via API (two-step):**
 
@@ -196,36 +264,49 @@ page_id = models.execute_kw(DB, UID, KEY, 'website.page', 'create', [{
 **QWeb Template Requirements:**
 - Follow ALL rules from the odoo-qweb-page skill
 - NO `<?xml ?>` declaration
-- NO `<odoo>`, `<data>`, `<template>` wrappers
+- NO `<odoo>`, `<data>` wrappers
+- **NEVER use `<template>` tag in arch_db** — use `<t t-name="...">` instead. `<template>` is only for XML data files, `arch_db` needs `<t t-name>` as root element.
 - Start with `<t t-name="website.{page_slug}">`
 - Use `<t t-call="website.layout">`
 - `<div id="wrap" class="oe_structure oe_empty">`
 - Every `<section>` has `o_colored_level`
-- CSS in `<xpath expr="head" position="inside"><style>...</style></xpath>`
-- All CSS classes namespaced (prefix with `pv-` for "preview")
+- CSS in `<style>` tag inside the `<t t-call="website.layout">` block (inline in template)
+- All CSS classes namespaced (prefix with `rp-`, `pv-`, etc. for "preview")
+
+**CRITICAL — Duplicate Views Warning:**
+When updating an `ir.ui.view`, Odoo may have created a **website-specific copy** (with `website_id` set). Odoo always serves the website-specific view over the generic one. When updating `arch_db`, you MUST:
+1. Search for ALL views with the same `key`: `models.execute_kw(DB, UID, KEY, 'ir.ui.view', 'search_read', [[['key', '=', view_key]]], {'fields': ['id', 'website_id', 'active']})`
+2. Update ALL matching views (both generic and website-specific)
+3. If only updating the generic view (no `website_id`), the change will NOT be visible on the website
 
 ### Step 5: Create Personalized Email Template
 
-Create an email matching the web preview style. The email should:
-- Use the same color scheme as the web preview
+Create an email matching the web preview style. Read the `email-templates` SKILL for Odoo mailing editor block structure.
+
+**The email MUST:**
+- Use Odoo mailing editor block structure (see email-templates SKILL for `o_mail_snippet_general` classes)
+- Use `o_layout` wrapper → `o_mail_wrapper` container → `oe_structure` column
+- Every content block needs `o_mail_snippet_general` class for editability in Odoo
+- Match the same color scheme as the web preview (industry-specific)
+- Start with "View Online" block (`o_snippet_view_in_browser`)
 - Explain what was done ("Připravili jsme pro vás náhled nového webu")
 - Include link to the web preview page
-- Show pricing (web, server, design, SSL, bezpečnost, údržba od 1 290 Kč/měsíc)
+- Show pricing (web, server, design, SSL, bezpečnost, údržba od 490 Kč/měsíc)
 - Have a clear CTA ("Zobrazit váš nový web")
-- Include "View in browser" link
-- Include unsubscribe link
+- Include unsubscribe link in footer
+- Set BOTH `body_arch` AND `body_html` to the same HTML
 
 ```python
-mailing_model_id = models.execute_kw(DB, UID, KEY, 'ir.model', 'search', [
-    [['model', '=', 'mailing.contact']]
-])[0]
+partner_model_id = models.execute_kw(DB, UID, KEY, 'ir.model', 'search', [
+    [['model', '=', 'res.partner']]])[0]
 
 email_mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
     'subject': f'Připravili jsme pro vás náhled nového webu — {company_name}',
     'mailing_type': 'mail',
-    'body_html': email_html,  # Personalized email HTML
-    'mailing_model_id': mailing_model_id,
-    'contact_list_ids': [(6, 0, [list_id])],
+    'body_arch': email_html,  # QWeb editable template with o_mail_snippet_general blocks
+    'body_html': email_html,  # Same HTML for sending
+    'mailing_model_id': partner_model_id,
+    'mailing_domain': f'["&", ("is_blacklisted", "=", False), ("id", "=", {partner_id})]',
     'state': 'draft',
     'email_from': 'Michal Varyš <info@michalvarys.eu>',
     'reply_to': 'info@michalvarys.eu',
@@ -235,20 +316,27 @@ email_mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', 
 
 ### Step 6: Create SMS Template
 
-SMS with link to email browser view:
+Short catchy SMS (max 1-2 SMS = 320 chars, ideally under 160 for 1 SMS) with link to email browser view.
+
+**SMS format:** Catchy hook + link to email view (not web preview) + sender signature.
+**Link:** Use `/mailing/{email_mailing_id}/view` to show the full email with web preview link.
 
 ```python
 sms_mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
     'subject': f'SMS — {company_name}',
     'mailing_type': 'sms',
-    'body_plaintext': f'Dobrý den, připravili jsme pro Vás náhled nového webu. Podívejte se: https://michalvarys.eu/mailing/{email_mailing_id}/view — Michal Varyš',
-    'mailing_model_id': mailing_model_id,
-    'contact_list_ids': [(6, 0, [list_id])],
+    'body_plaintext': f'Dobry den, pripravili jsme ukazku noveho webu pro vasi restauraci ZDARMA. Podivejte se: https://www.michalvarys.eu/mailing/{email_mailing_id}/view - Michal, varyshop.eu',
+    'mailing_model_id': partner_model_id,
+    'mailing_domain': f'["&", ("phone_sanitized_blacklisted", "=", False), ("id", "=", {partner_id})]',
     'state': 'draft',
 }])
 ```
 
-### Step 7: Set Up Mailing Infrastructure
+### Step 7: Set Up Mailing Infrastructure (OPTIONAL)
+
+> **Note:** When targeting res.partner directly (Steps 5-6 above), mailing lists are NOT needed.
+> Only create mailing list infrastructure if you want to use list-based targeting instead.
+
 
 ```python
 # Create dedicated mailing list for this prospect
@@ -285,6 +373,63 @@ Links format:
 - Email: `{ODOO_URL}/web#id={email_mailing_id}&model=mailing.mailing&view_type=form`
 - SMS: `{ODOO_URL}/web#id={sms_mailing_id}&model=mailing.mailing&view_type=form`
 
+### Step 8: Set Up UTM Campaign & Link Tracking
+
+Create a shared UTM campaign for all touchpoints (web, email, SMS) so clicks are tracked consistently.
+
+```python
+# 1. Use or create UTM campaign
+campaign_id = 3  # "Web zdarma" - or create new:
+# campaign_id = models.execute_kw(DB, UID, KEY, 'utm.campaign', 'create', [{'name': 'Web zdarma', 'title': 'Web zdarma'}])
+
+# 2. Create UTM source for this prospect
+source_id = models.execute_kw(DB, UID, KEY, 'utm.source', 'create', [{
+    'name': f'Prospect {company_name}'
+}])
+
+# 3. Create tracked links for web preview CTA buttons
+tracker_cta_id = models.execute_kw(DB, UID, KEY, 'link.tracker', 'create', [{
+    'url': f'https://www.michalvarys.eu/contactus?partner={company_slug}',
+    'title': f'Mam zajem - {company_name}',
+    'campaign_id': campaign_id,
+    'source_id': source_id,
+    'medium_id': 1,  # Website
+    'label': 'Mam zajem',
+}])
+tracker_data = models.execute_kw(DB, UID, KEY, 'link.tracker', 'read', [[tracker_cta_id]], {
+    'fields': ['short_url', 'code']
+})
+cta_short_url = tracker_data[0]['short_url']  # e.g. https://www.michalvarys.eu/r/bPY
+
+# 4. Use short URLs in web preview template (replace mailto: links)
+# All CTA buttons on web preview should use tracked short URLs
+
+# 5. Assign UTM campaign to email mailing
+models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'write', [[email_mailing_id], {
+    'campaign_id': campaign_id,
+    'source_id': source_id,
+    'medium_id': 4,  # Email
+}])
+
+# 6. Assign UTM campaign to SMS mailing
+models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'write', [[sms_mailing_id], {
+    'campaign_id': campaign_id,
+    'source_id': source_id,
+    'medium_id': 11,  # SMS
+}])
+```
+
+**Key link.tracker fields:**
+- `url` — target URL the user lands on
+- `short_url` — generated trackable URL (e.g. `/r/bPY`)
+- `campaign_id` — UTM campaign (shared across web/email/SMS)
+- `source_id` — UTM source (prospect-specific)
+- `medium_id` — UTM medium (1=Website, 4=Email, 11=SMS)
+- `count` — click count (auto-updated)
+- `link_click_ids` — individual click records with IP/timestamp
+
+**All CTA buttons on web preview MUST use tracked short URLs**, not mailto: links. This way every click is recorded in Odoo under the campaign.
+
 ## Important Rules
 
 1. **NEVER auto-send** emails or SMS. Always keep as draft.
@@ -292,5 +437,7 @@ Links format:
 3. **Web page SEO indexing is OFF** — it's a preview, not a permanent page.
 4. **Partner comment contains the FULL analysis** — this is the sales intel.
 5. **Email style matches the web preview** — consistent branding.
-6. **Pricing always mentions: od 1 290 Kč/měsíc** — for web, server, design, SSL, bezpečnost a údržba.
+6. **Pricing always mentions: od 890 Kč/měsíc** — for web, server, design, SSL, bezpečnost a údržba.
 7. **All links in email get automatic Odoo tracking** — no manual UTM needed.
+8. **All CTA links on web preview use link.tracker short URLs** — for click tracking under the UTM campaign.
+9. **Same UTM campaign is assigned to web, email, and SMS** — unified analytics.
