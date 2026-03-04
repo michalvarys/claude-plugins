@@ -5,7 +5,7 @@ description: >
   via upload-post.com API. Use when the user asks to "publish a post", "post to social media",
   "upload to Instagram", "share on TikTok", "publish across platforms", "post to Facebook",
   "upload to YouTube", "create a publish script", or wants to distribute content to multiple social networks.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Publish Post
@@ -15,7 +15,8 @@ Publish social media posts across Instagram, Threads, TikTok, Facebook, and YouT
 ## API Configuration
 
 - **Auth Header**: `Authorization: Apikey <API_KEY>`
-- **User**: Set per account (e.g., `varyshop`)
+- **User**: Set per account (e.g., `varyshop`, `ezopeach`)
+- **Credentials**: Load from `.env` file in the project folder. Expected vars: `UPLOAD_POST_API_KEY`, `UPLOAD_POST_PROFILE`
 
 ### Endpoints — Choose by Content Type
 
@@ -34,16 +35,30 @@ Both endpoints accept multipart/form-data.
 | Threads | `threads` | — |
 | TikTok | `tiktok` | `privacy_level`, `post_mode` |
 | Facebook | `facebook` | `facebook_page_id` (auto-detected if only one page) |
-| YouTube | `youtube` | `youtube_title` or `title` (required) |
+| YouTube | `youtube` | `title` (REQUIRED — generic fallback field) + `youtube_title` |
 
 Default platforms: `instagram`, `threads`, `tiktok`, `facebook`, `youtube`
+
+## CRITICAL API GOTCHAS
+
+> **These are hard-won lessons from real API failures. Read carefully.**
+
+1. **YouTube REQUIRES the generic `title` field** — Setting only `youtube_title` is NOT enough. The API rejects the ENTIRE upload (all platforms, not just YouTube) with: `{"success":false,"message":"Title is required for Youtube. Provide a title."}`. You MUST always include `-F "title=..."` when YouTube is in the platform list.
+
+2. **Facebook `facebook_title` max 255 characters** — The API rejects the ENTIRE upload if `facebook_title` exceeds 255 chars: `{"success":false,"message":"Facebook title is too long (XXX characters). Maximum allowed is 255."}`. Always count characters before sending. Keep Facebook text concise.
+
+3. **API validation is all-or-nothing** — If ANY platform field fails validation, NO platforms get published. A single error blocks the entire upload.
+
+4. **Always check API response for `"success":true`** — The curl command returns 200 even on validation failures. Scripts MUST parse the JSON response and check `success` field.
+
+5. **`async_upload=true` always** — The API processes uploads in background. Response only confirms the upload was accepted, not that it was published.
 
 ## Required Fields (All Endpoints)
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `user` | string | Account username |
-| `title` | string | Main post text (fallback for all platforms) |
+| `user` | string | Account username (e.g., `ezopeach`) |
+| `title` | string | **REQUIRED** — Main post text / fallback for all platforms. YouTube will fail without this. |
 | `platform[]` | array | Platforms to publish to |
 | `async_upload` | boolean | Always `true` |
 
@@ -65,14 +80,14 @@ Default platforms: `instagram`, `threads`, `tiktok`, `facebook`, `youtube`
 
 Each platform can have its own optimized text. Platform-specific fields override the generic `title`.
 
-| Field | Platform | Notes |
-|-------|----------|-------|
-| `instagram_title` | Instagram | Full caption with hashtags |
-| `tiktok_title` | TikTok | Short hook — max ~150 chars |
-| `facebook_title` | Facebook | Full post text |
-| `youtube_title` | YouTube | Video title (required for YouTube) |
-| `youtube_description` | YouTube | Video description |
-| `threads_title` | Threads | Short hook line |
+| Field | Platform | Notes | Max Length |
+|-------|----------|-------|-----------|
+| `instagram_title` | Instagram | Full caption with hashtags | ~2200 chars |
+| `tiktok_title` | TikTok | Short hook | ~150 chars |
+| `facebook_title` | Facebook | Full post text | **255 chars MAX** |
+| `youtube_title` | YouTube | Video title (also set generic `title`!) | ~100 chars |
+| `youtube_description` | YouTube | Video description | ~5000 chars |
+| `threads_title` | Threads | Short hook line | ~500 chars |
 
 ### First Comment Fields (Optional)
 
@@ -126,7 +141,14 @@ threads_long_text_as_post=false
 ## Example: Publish Video to All Platforms
 
 ```bash
-curl \
+#!/bin/bash
+set -e
+
+# Load credentials from .env
+API_KEY="${UPLOAD_POST_API_KEY}"
+USER="${UPLOAD_POST_PROFILE}"
+
+RESPONSE=$(curl -s \
   -H "Authorization: Apikey $API_KEY" \
   -F "user=$USER" \
   -F 'platform[]=instagram' \
@@ -137,9 +159,10 @@ curl \
   -F 'async_upload=true' \
   -F 'video=@video-final.mp4' \
   -F 'media_type=REELS' \
+  -F "title=YouTube Video Title" \
   -F 'instagram_title=Instagram caption with #hashtags' \
   -F 'tiktok_title=Short TikTok hook' \
-  -F 'facebook_title=Facebook post text' \
+  -F 'facebook_title=Facebook post text (max 255 chars!)' \
   -F 'facebook_media_type=REELS' \
   -F 'youtube_title=YouTube Video Title' \
   -F 'youtube_description=Full YouTube description' \
@@ -155,13 +178,23 @@ curl \
   -F 'brand_content_toggle=false' \
   -F 'brand_organic_toggle=false' \
   -F 'auto_add_music=false' \
-  -X POST "https://api.upload-post.com/api/upload"
+  -X POST "https://api.upload-post.com/api/upload")
+
+echo "$RESPONSE"
+
+# Check for success
+if echo "$RESPONSE" | grep -q '"success":true'; then
+  echo "Upload successful!"
+else
+  echo "ERROR: Upload failed!"
+  exit 1
+fi
 ```
 
 ## Example: Publish Image to All Platforms
 
 ```bash
-curl \
+RESPONSE=$(curl -s \
   -H "Authorization: Apikey $API_KEY" \
   -F "user=$USER" \
   -F 'platform[]=instagram' \
@@ -171,9 +204,10 @@ curl \
   -F 'async_upload=true' \
   -F 'photos[]=@post-image.png' \
   -F 'media_type=FEED' \
+  -F "title=Post title text" \
   -F 'instagram_title=Instagram caption with #hashtags' \
   -F 'tiktok_title=Short TikTok hook' \
-  -F 'facebook_title=Facebook post text' \
+  -F 'facebook_title=Facebook post text (max 255 chars!)' \
   -F 'facebook_media_type=FEED' \
   -F 'threads_title=Threads hook text' \
   -F 'privacy_level=PUBLIC_TO_EVERYONE' \
@@ -183,7 +217,15 @@ curl \
   -F 'brand_organic_toggle=false' \
   -F 'auto_add_music=false' \
   -F 'photo_cover_index=0' \
-  -X POST "https://api.upload-post.com/api/upload_photos"
+  -X POST "https://api.upload-post.com/api/upload_photos")
+
+echo "$RESPONSE"
+if echo "$RESPONSE" | grep -q '"success":true'; then
+  echo "Upload successful!"
+else
+  echo "ERROR: Upload failed!"
+  exit 1
+fi
 ```
 
 ## Carousel Post
@@ -197,6 +239,7 @@ curl \
   -F 'platform[]=instagram' \
   -F 'media_type=CAROUSEL' \
   -F 'async_upload=true' \
+  -F "title=Carousel post" \
   -F 'photos[]=@slide1.png' \
   -F 'photos[]=@slide2.png' \
   -F 'photos[]=@slide3.png' \
@@ -209,12 +252,16 @@ curl \
 
 When generating a shell script for batch publishing:
 
-1. Set API_KEY and USER variables at the top
+1. Set API_KEY and USER variables at the top (load from `.env` if available)
 2. Add a `sleep 3` between API calls to avoid rate limiting
 3. Handle shell escaping — use `'"'"'` for apostrophes in `-F` values
 4. Always generate platform-specific text for each platform
 5. Generate the script as a `.sh` file the user can run locally
 6. Choose the correct endpoint based on content type (video vs image)
+7. **ALWAYS include `title` field** when YouTube is a target platform
+8. **ALWAYS keep `facebook_title` under 255 characters**
+9. **ALWAYS capture the API response and check `"success":true`** before reporting success
+10. **ALWAYS validate text lengths before making the API call**
 
 ## Text Optimization Per Platform
 
@@ -222,7 +269,7 @@ When creating post text, optimize for each platform:
 
 - **Instagram**: Full text with line breaks, emojis in text (not images), 6-8 hashtags at the end
 - **TikTok title**: Punchy one-liner hook (max ~150 chars)
-- **Facebook**: Full text, more professional/educational tone, 3-5 hashtags
+- **Facebook**: Concise text (MAX 255 CHARS including hashtags), professional/educational tone, 2-3 hashtags
 - **YouTube title**: Concise, keyword-rich title (max 100 chars)
 - **YouTube description**: Full description with keywords, timestamps if relevant, links
 - **Threads title**: Hook/opening line only, conversational
@@ -267,17 +314,21 @@ After every successful publish (or when generating a publish script), **ALWAYS s
 
 1. Identify content type: image, carousel, or video
 2. Choose the correct endpoint (`/upload` for video, `/upload_photos` for images)
-3. Write post text optimized for each platform
-4. Generate a curl command or shell script with all required fields
-5. Execute the curl command (or provide script for user to run locally)
-6. Verify async upload status if needed
-7. **Save `publish-meta.json`** to the post folder
+3. Write post text optimized for each platform — **check character limits** (Facebook 255, TikTok 150)
+4. **ALWAYS include the generic `title` field** (YouTube requires it)
+5. Generate a curl command or shell script with all required fields
+6. Execute the curl command (or provide script for user to run locally)
+7. **Parse the API response — check for `"success":true`** before confirming success
+8. **Save `publish-meta.json`** to the post folder
 
 ## Important Notes
 
 - The API may not be reachable from all environments (e.g., VM proxy restrictions). In that case, generate a `.sh` script for the user to run from their local machine.
 - Always use `async_upload=true` for reliability.
-- The API key and user credentials should be stored securely, not hardcoded in shared files.
-- YouTube requires a `title` (or `youtube_title`) — the API will reject uploads without it.
+- The API key and user credentials should be stored in `.env` file, not hardcoded in shared files.
+- **YouTube REQUIRES the generic `title` field** — `youtube_title` alone is NOT enough. The API rejects the ENTIRE upload without `title`.
+- **Facebook `facebook_title` MUST be under 255 characters** — The API rejects the ENTIRE upload if exceeded.
+- **API validation is all-or-nothing** — one invalid field blocks ALL platforms from publishing.
 - Facebook page ID is auto-detected if the user has only one page. Otherwise use `GET /uploadposts/facebook/pages` to find the correct ID.
 - **ALWAYS save publish-meta.json** — even when generating a script instead of calling the API directly.
+- **ALWAYS check the `success` field in the API response** — HTTP 200 does NOT mean success.

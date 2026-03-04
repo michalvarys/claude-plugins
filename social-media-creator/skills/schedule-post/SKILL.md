@@ -6,12 +6,22 @@ description: >
   Use when the user asks to "schedule a post", "publish at a specific time",
   "set up daily posting", "automate content publishing", "post every day at 13:00",
   "schedule for tomorrow", "publish next Monday", or wants to create a recurring content pipeline.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Schedule Post
 
 Schedule social media posts for specific dates/times using the upload-post.com API's native scheduling, and create automated pipelines that generate + publish content on a recurring basis.
+
+## CRITICAL API GOTCHAS (from publish-post)
+
+> Before scheduling ANY post, review these hard-won lessons:
+
+1. **YouTube REQUIRES the generic `title` field** — `youtube_title` alone is NOT enough. Without `title`, the API rejects the ENTIRE upload.
+2. **Facebook `facebook_title` max 255 characters** — exceeding this rejects the ENTIRE upload.
+3. **API validation is all-or-nothing** — one bad field blocks ALL platforms.
+4. **Always check `"success":true` in the response** — HTTP 200 does NOT mean success.
+5. **Load credentials from `.env`** — Expected vars: `UPLOAD_POST_API_KEY`, `UPLOAD_POST_PROFILE`
 
 ## Two Modes
 
@@ -35,7 +45,7 @@ The `scheduled_date` and `add_to_queue` fields are mutually exclusive — use on
 #### Example: Schedule a Video for March 15 at 14:30 CET
 
 ```bash
-curl \
+RESPONSE=$(curl -s \
   -H "Authorization: Apikey $API_KEY" \
   -F "user=$USER" \
   -F 'platform[]=instagram' \
@@ -48,9 +58,10 @@ curl \
   -F 'scheduled_date=2026-03-15T14:30:00' \
   -F 'timezone=Europe/Prague' \
   -F 'media_type=REELS' \
+  -F "title=YouTube Video Title" \
   -F 'instagram_title=Instagram caption with #hashtags' \
   -F 'tiktok_title=Short TikTok hook' \
-  -F 'facebook_title=Facebook post text' \
+  -F 'facebook_title=Facebook text (max 255 chars!)' \
   -F 'facebook_media_type=REELS' \
   -F 'youtube_title=YouTube Video Title' \
   -F 'youtube_description=Full YouTube description' \
@@ -65,13 +76,21 @@ curl \
   -F 'brand_content_toggle=false' \
   -F 'brand_organic_toggle=false' \
   -F 'auto_add_music=false' \
-  -X POST "https://api.upload-post.com/api/upload"
+  -X POST "https://api.upload-post.com/api/upload")
+
+echo "$RESPONSE"
+if echo "$RESPONSE" | grep -q '"success":true'; then
+  echo "Scheduled successfully!"
+else
+  echo "ERROR: Scheduling failed!"
+  exit 1
+fi
 ```
 
 #### Example: Schedule an Image Post
 
 ```bash
-curl \
+RESPONSE=$(curl -s \
   -H "Authorization: Apikey $API_KEY" \
   -F "user=$USER" \
   -F 'platform[]=instagram' \
@@ -83,14 +102,23 @@ curl \
   -F 'scheduled_date=2026-03-15T14:30:00' \
   -F 'timezone=Europe/Prague' \
   -F 'media_type=FEED' \
+  -F "title=Post title" \
   -F 'instagram_title=Instagram caption...' \
   -F 'tiktok_title=TikTok hook...' \
-  -F 'facebook_title=Facebook text...' \
+  -F 'facebook_title=Facebook text (max 255 chars!)...' \
   -F 'threads_title=Threads hook...' \
   -F 'privacy_level=PUBLIC_TO_EVERYONE' \
   -F 'post_mode=DIRECT_POST' \
   -F 'disable_comment=false' \
-  -X POST "https://api.upload-post.com/api/upload_photos"
+  -X POST "https://api.upload-post.com/api/upload_photos")
+
+echo "$RESPONSE"
+if echo "$RESPONSE" | grep -q '"success":true'; then
+  echo "Scheduled successfully!"
+else
+  echo "ERROR: Scheduling failed!"
+  exit 1
+fi
 ```
 
 #### API Response for Scheduled Posts
@@ -197,7 +225,7 @@ curl -H "Authorization: Apikey $API_KEY" \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{
-    "profile_username": "varyshop",
+    "profile_username": "ezopeach",
     "timezone": "Europe/Prague",
     "slots": [{"time": "13:00"}],
     "days_of_week": [0, 1, 2, 3, 4, 5, 6]
@@ -248,17 +276,22 @@ content-queue/
 
 ### Quick Schedule (ready post)
 1. User has a completed post (image/video + text)
-2. Add `scheduled_date` and `timezone` to the normal publish API call
-3. Save the returned `job_id` for tracking
-4. Save `publish-meta.json` with `scheduled_for` field
+2. **Validate all text fields** — Facebook max 255 chars, TikTok max 150 chars
+3. **Include generic `title` field** if YouTube is a target platform
+4. Add `scheduled_date` and `timezone` to the normal publish API call
+5. **Check `"success":true` in the response** before confirming
+6. Save the returned `job_id` for tracking
+7. Save `publish-meta.json` with `scheduled_for` field
 
 ### Batch Scheduling
 1. Generate multiple posts in advance
 2. Create a shell script with one API call per post, each with different `scheduled_date`
-3. Run the script — each post gets queued server-side
+3. **Include error checking after each API call**
+4. Run the script — each post gets queued server-side
 
-### Full Pipeline (source → video → publish)
+### Full Pipeline (source -> video -> publish)
 1. Set up content calendar with topics
 2. Create a recurring scheduled task via `create_scheduled_task` MCP tool
-3. Each run: pick topic → generate video → publish via API (immediately or with `scheduled_date`)
-4. Mark topic as completed
+3. Each run: pick topic -> generate video -> publish via API (immediately or with `scheduled_date`)
+4. **Verify API response before marking as published**
+5. Mark topic as completed
