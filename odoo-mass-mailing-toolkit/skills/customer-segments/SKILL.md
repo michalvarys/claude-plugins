@@ -22,7 +22,7 @@ Also read the purchase-analysis skill for data fetching patterns:
 
 ## Configuration
 
-Environment variables: `ODOO_URL`, `ODOO_DB`, `ODOO_API_KEY` (UID se zjistí automaticky)
+Environment variables: `ODOO_URL`, `ODOO_DB`, `ODOO_API_KEY`, `ORDER_URL` (UID se zjistí automaticky)
 
 ## Předdefinované segmenty
 

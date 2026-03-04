@@ -13,8 +13,11 @@ Plugin analyzuje nákupní historii zákazníků, segmentuje je podle chování 
 - `ODOO_URL`: Odoo instance URL (default: `https://michalvarys.eu`)
 - `ODOO_DB`: Database name (default: `varyshop`)
 - `ODOO_API_KEY`: API key from Odoo user profile
+- `ORDER_URL`: Odkaz na objednávkovou stránku (default: `https://new.pizzasidonio.cz/objednat`)
 
 UID is automatically determined via `common.authenticate()`.
+
+`ORDER_URL` se používá ve všech SMS a email šablonách jako dynamický odkaz. Při migraci na novou aplikaci stačí změnit na `https://app.pizzasidonio.cz/`.
 
 ### Závislosti
 

@@ -25,7 +25,9 @@ Also use these skills for data:
 
 ## Configuration
 
-Environment variables: `ODOO_URL`, `ODOO_DB`, `ODOO_API_KEY` (UID se zjistí automaticky)
+Environment variables: `ODOO_URL`, `ODOO_DB`, `ODOO_API_KEY`, `ORDER_URL` (UID se zjistí automaticky)
+
+`ORDER_URL` je dynamický odkaz na objednávkovou stránku (default: `https://new.pizzasidonio.cz/objednat`). Vždy čti z env proměnné, nikdy nehardcoduj.
 
 ## CELKOVÝ WORKFLOW
 
@@ -150,27 +152,27 @@ mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
 
 #### WIN-BACK (nenakoupili X měsíců)
 ```
-Ahoj! Chybite nam :-) Mame pro vas slevu s kodem {CODE} na cely sortiment. Platí do nedele! Objednejte: {ODOO_URL}/shop
+Ahoj! Chybite nam :-) Mame pro vas slevu s kodem {CODE} na cely sortiment. Platí do nedele! Objednejte: {ORDER_URL}
 ```
 
 #### REACTIVATION (nenakoupili rok)
 ```
-Uz je to davno! Mame novou nabidku a pro vas kod {CODE} na -{DISCOUNT}%. Budeme se tesit: {ODOO_URL}/shop
+Uz je to davno! Mame novou nabidku a pro vas kod {CODE} na -{DISCOUNT}%. Budeme se tesit: {ORDER_URL}
 ```
 
 #### WEEKDAY-LUNCH (nakupují v poledne)
 ```
-Poledni pauza? Idealni cas na objednavku s kodem {CODE}! Neco navic jen pro vas: {ODOO_URL}/shop
+Poledni pauza? Idealni cas na objednavku s kodem {CODE}! Neco navic jen pro vas: {ORDER_URL}
 ```
 
 #### PRODUCT-LOVERS (kupují specifický produkt)
 ```
-Vase oblibene {PRODUCT}? Mame pro vas kod {CODE} — {OFFER}! Jen tento tyden: {ODOO_URL}/shop
+Vase oblibene {PRODUCT}? Mame pro vas kod {CODE} — {OFFER}! Jen tento tyden: {ORDER_URL}
 ```
 
 #### CROSS-SELL (někdy koupili produkt)
 ```
-{PRODUCT} vam chutnaly? Kod {CODE} = {PRODUCT} ZDARMA k objednavce nad {MIN_AMOUNT} Kc! {ODOO_URL}/shop
+{PRODUCT} vam chutnaly? Kod {CODE} = {PRODUCT} ZDARMA k objednavce nad {MIN_AMOUNT} Kc! {ORDER_URL}
 ```
 
 ### Generování SMS textu:
@@ -308,7 +310,7 @@ Agent VŽDY vytvoří SMS text bez diakritiky. Použij převodní tabulku:
 2. Blacklist filtr: SMS
 3. SMS text:
 ```
-Ahoj! Chybite nam :-) Mame pro vas slevu -10% s kodem HAPPY10 na cely sortiment. Platí do nedele! Objednejte: https://michalvarys.eu/shop
+Ahoj! Chybite nam :-) Mame pro vas slevu -10% s kodem HAPPY10 na cely sortiment. Platí do nedele! Objednejte: {ORDER_URL}
 ```
 4. Vytvoř mailing.mailing jako draft s mailing_domain
 
@@ -318,7 +320,7 @@ Ahoj! Chybite nam :-) Mame pro vas slevu -10% s kodem HAPPY10 na cely sortiment.
 2. Blacklist filtr: SMS
 3. SMS text:
 ```
-Uz je to davno co jste u nas byli! Mame novou nabidku a pro vas slevovy kod NAVRAT na -15%. Budeme se tesit: https://michalvarys.eu/shop
+Uz je to davno co jste u nas byli! Mame novou nabidku a pro vas slevovy kod NAVRAT na -15%. Budeme se tesit: {ORDER_URL}
 ```
 
 ### Příklad 3: "vytvoř mi email s kódem VSEDNI kde budou všichni kteří nakupují ve všední dny mezi 11-15h"
@@ -339,7 +341,7 @@ Uz je to davno co jste u nas byli! Mame novou nabidku a pro vas slevovy kod NAVR
 2. Blacklist filtr: SMS
 3. SMS text:
 ```
-Noky vam chutnaly? Mame pro vas kod FREENOKY — noky ZDARMA k jakekoli objednavce nad 200 Kc! Objednejte: https://michalvarys.eu/shop
+Noky vam chutnaly? Mame pro vas kod FREENOKY — noky ZDARMA k jakekoli objednavce nad 200 Kc! Objednejte: {ORDER_URL}
 ```
 
 ---

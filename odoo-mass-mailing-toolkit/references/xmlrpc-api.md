@@ -9,6 +9,7 @@ import os
 ODOO_URL = os.environ.get('ODOO_URL', 'https://michalvarys.eu')
 ODOO_DB = os.environ.get('ODOO_DB', 'varyshop')
 ODOO_API_KEY = os.environ.get('ODOO_API_KEY', '')
+ORDER_URL = os.environ.get('ORDER_URL', 'https://new.pizzasidonio.cz/objednat')
 
 common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
 models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
@@ -199,7 +200,7 @@ mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
 mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
     'subject': 'Název SMS kampaně',
     'mailing_type': 'sms',
-    'body_plaintext': 'Text SMS zpravy bez diakritiky. Odkaz: https://michalvarys.eu/page',
+    'body_plaintext': 'Text SMS zpravy bez diakritiky. Odkaz: {ORDER_URL}',
     'mailing_model_id': partner_model_id,
     'mailing_model_name': 'res.partner',
     'mailing_model_real': 'res.partner',

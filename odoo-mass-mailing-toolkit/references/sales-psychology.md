@@ -42,27 +42,27 @@
 
 #### Zákazník co nenakoupil 3 měsíce (win-back)
 ```
-Ahoj! Chybite nam :-) Jako omluvu mame pro vas slevu -10% s kodem HAPPY10 na cely sortiment. Platí do nedele! {link}
+Ahoj! Chybite nam :-) Jako omluvu mame pro vas slevu -10% s kodem HAPPY10 na cely sortiment. Platí do nedele! {ORDER_URL}
 ```
 
 #### Zákazník co nenakoupil rok (reactivation)
 ```
-Uz je to davno co jste u nas byli! Mame novou nabidku a pro vas slevovy kod NAVRAT na -15%. Zkuste nas znovu: {link}
+Uz je to davno co jste u nas byli! Mame novou nabidku a pro vas slevovy kod NAVRAT na -15%. Zkuste nas znovu: {ORDER_URL}
 ```
 
 #### Zákazník nakupující v konkrétní čas (behavioral)
 ```
-Poledni pauza? Idealni cas na objednavku! Dnes s kodem VSEDNI dostanete neco navic. Objednejte ted: {link}
+Poledni pauza? Idealni cas na objednavku! Dnes s kodem VSEDNI dostanete neco navic. Objednejte ted: {ORDER_URL}
 ```
 
 #### Zákazník kupující konkrétní produkt
 ```
-Vite co je dneska skvele? Vase oblibena sunkova pizza a k ni ZDARMA noky s kodem SUNKOVA. Jen dnes! {link}
+Vite co je dneska skvele? Vase oblibena sunkova pizza a k ni ZDARMA noky s kodem SUNKOVA. Jen dnes! {ORDER_URL}
 ```
 
 #### Zákazník co někdy koupil specifický produkt (cross-sell)
 ```
-Noky vam chutnaly? Mame pro vas kod FREENOKY — noky ZDARMA k jakekoli objednavce nad 200 Kc! {link}
+Noky vam chutnaly? Mame pro vas kod FREENOKY — noky ZDARMA k jakekoli objednavce nad 200 Kc! {ORDER_URL}
 ```
 
 ### SMS — Klíčové metriky

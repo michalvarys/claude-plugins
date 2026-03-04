@@ -18,7 +18,7 @@ Before executing any API calls, read the shared reference at `${CLAUDE_PLUGIN_RO
 
 ## Configuration
 
-Environment variables: `ODOO_URL`, `ODOO_DB`, `ODOO_API_KEY` (UID se zjistí automaticky)
+Environment variables: `ODOO_URL`, `ODOO_DB`, `ODOO_API_KEY`, `ORDER_URL` (UID se zjistí automaticky)
 
 ## DŮLEŽITÉ — Spojení POS a Sale dat
 
