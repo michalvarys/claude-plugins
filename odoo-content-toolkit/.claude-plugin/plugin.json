@@ -1,6 +1,6 @@
 {
   "name": "odoo-content-toolkit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Odoo 18 content creation toolkit — SEO blog articles (blog.post), deep research, and e-learning courses (slide.channel + slide.slide) via XML-RPC API. Supports AI image generation for covers and thumbnails.",
   "author": {
     "name": "Michal Varys"

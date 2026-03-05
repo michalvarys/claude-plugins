@@ -439,3 +439,43 @@ except xmlrpc.client.Fault as e:
 except Exception as e:
     print(f"Connection Error: {e}")
 ```
+
+---
+
+## KRITICKE POZNAMKY Z PRAXE
+
+### Spravny call pattern (POUZIVEJ VZDY)
+
+```python
+def call(model, method, args, kw=None):
+    if kw is None: kw = {}
+    return models.execute_kw(DB, UID, KEY, model, method, args, kw)
+
+def call_cs(model, method, args, kw=None):
+    if kw is None: kw = {}
+    kw['context'] = {'lang': 'cs_CZ'}
+    return models.execute_kw(DB, UID, KEY, model, method, args, kw)
+```
+
+NIKDY nepouzivej *args/**kwargs — zpusobi TypeError s context parametrem.
+
+### Domain wrapping
+- search: call('model', 'search', [[['field', '=', val]]])
+- Tri urovne listu: args_list > domain_list > leaf_tuple
+
+### URL
+- VZDY: https://www.michalvarys.eu (s www)
+- BEZ www zpusobi 301 redirect a XML-RPC selze
+
+### Ceske preklady
+- context jde do kwargs dict, NE jako Python keyword
+- Funguje pro vsechny modely: slide.slide, slide.question, slide.answer
+
+### HTML obsah clanku
+- VZDY obal: section.s_text_block > container > row > col-lg-12
+- Bez wrapperu se obsah nezobrazuje spravne na webu
+
+### Quiz otazky a odpovedi
+- Smazani: call('slide.question', 'unlink', [ids]) — kaskadove maze odpovedi
+- Tvorba: zvlast slide.question create + slide.answer create
+- Preklady: call_cs pro question i answer

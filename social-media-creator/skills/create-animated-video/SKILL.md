@@ -377,3 +377,57 @@ At the beginning of each new post creation:
 5. Optionally generate voiceover (see generate-voiceover skill) and re-render with audio
 6. Export in desired format(s): 9x16, 4x5, 1x1, 16x9
 7. Save all files to the post folder
+
+## Batch Rendering from JSON Data
+
+When generating multiple videos (e.g. e-learning lessons, video series),
+use a data-driven pipeline:
+
+1. **Prepare JSON data** with all lesson/video metadata (titles, content,
+   section info, icons, colors)
+2. **Create HTML template** with CSS variables and scene-based animations
+3. **Generate HTML files** via Python script that fills template per entry
+4. **Batch render** all HTML files to MP4 via Node.js render script
+
+### JSON Data Structure
+
+For e-learning or series content, structure data as:
+- sections[] with title, color, icon_svg, description
+- lessons[] with section_id, title, subtitle, key_points[], duration
+
+### HTML Template System
+
+Use a single HTML template with placeholder tokens like {{TITLE}},
+{{SUBTITLE}}, {{SECTION_COLOR}}, {{ICON_SVG}}, {{KEY_POINTS_HTML}}.
+The generation script replaces these per lesson.
+
+Key template features:
+- CSS custom properties for per-section theming (--accent-color, --bg-gradient)
+- Scene-based animations with @keyframes (scene1, scene2, scene3...)
+- Inline SVG icons (never unicode emojis - they fail in headless Chromium)
+- Fixed 1080x1920 viewport, 30 second duration
+
+### Render Script (Node.js + Puppeteer + ffmpeg)
+
+The render script (render-lesson-videos.mjs) does:
+1. Scan outputs/lesson-videos/ for folders containing *-video.html
+2. For each: launch headless Chrome at 1080x1920
+3. Pause all CSS animations, then step through frame-by-frame at 30fps
+4. Pipe PNG frames to ffmpeg (libx264, CRF 18, yuv420p)
+5. Output *-9x16.mp4 in same folder
+
+Render settings: 30fps, 30s duration = 900 frames, ~80s render time per video.
+
+Important: The render script must be run on Mac host (needs Chrome + ffmpeg).
+Use a wrapper shell script with explicit nvm PATH:
+  export PATH=$HOME/.nvm/versions/node/v20.19.5/bin:/opt/homebrew/bin:$PATH
+
+For batch rendering of many videos, launch as background process via
+Python subprocess.Popen(start_new_session=True) and monitor /tmp/render_log.txt.
+
+### Per-Section SVG Icons
+
+Each section/category should have a unique inline SVG icon.
+Do NOT use unicode emojis - they render as empty boxes in headless Chromium.
+Instead, create simple SVG icons (24x24 viewBox) with stroke-based designs.
+Store icon SVG strings in the JSON data and inject into templates.
