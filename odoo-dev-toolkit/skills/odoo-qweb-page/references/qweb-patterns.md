@@ -25,6 +25,38 @@ Every page follows this exact structure. Don't deviate from the nesting order.
 2. **NEVER wrap the template in `<odoo>`, `<data>`, or `<template>` tags** — those are for data/record XML files, NOT for QWeb website page templates.
 3. **The file starts directly with `<t t-name="website.page-slug">`** — this is the root element.
 
+### When templates ARE inside data XML files (theme modules, manifest `data:` list)
+
+**Two rules for `<data>` wrapping:**
+
+1. **Template-only files** (e.g., snippets): `<template>` goes directly under `<odoo>` — do NOT wrap in `<data>`
+2. **Mixed files** (templates + records, e.g., pages with `theme.website.page`): wrap ALL content in `<data>`
+
+```xml
+<!-- CORRECT: template-only file (snippet) -->
+<odoo>
+<template id="s_my_snippet" name="My Snippet">
+    <section data-snippet="s_my_snippet" data-name="My Snippet">...</section>
+</template>
+</odoo>
+
+<!-- CORRECT: mixed file (page template + page record) -->
+<odoo>
+<data>
+<template id="my_page" name="My Page">
+    <t t-call="website.layout">...</t>
+</template>
+<record id="my_page_page" model="theme.website.page">
+    <field name="url">/</field>
+    <field name="view_id" ref="my_page"/>
+    <field name="is_published" eval="True"/>
+</record>
+</data>
+</odoo>
+```
+
+**IMPORTANT for theme modules (`theme_*`):** Do NOT use `<record model="theme.ir.ui.view">` with explicit `<field name="arch">` for pages and snippets. Use `<template>` instead — it automatically creates `theme.ir.ui.view` records. See `theme-snippets-pages.md` for the complete pattern.
+
 ### Correct skeleton
 
 ```xml

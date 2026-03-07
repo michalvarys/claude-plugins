@@ -149,6 +149,72 @@ main().catch((err) => {
 });
 ```
 
+## Scene Timing Fix Script
+
+When adjusting video duration (e.g., to match voiceover + 2s), scene timings must be recalculated to remain seamless. Use this approach:
+
+```javascript
+import { readFileSync, writeFileSync } from "fs";
+
+function fixSceneTimings(htmlPath, targetDuration) {
+  let html = readFileSync(htmlPath, "utf-8");
+
+  // Parse scene timings
+  const sceneRe = /(.scene-(\d+)\s*\{\s*animation:\s*sceneVis\s+)([\d.]+)(s\s+ease\s+forwards;\s*animation-delay:\s*)([\d.]+)(s;\s*\})/g;
+  const scenes = [];
+  let m;
+  while ((m = sceneRe.exec(html)) !== null) {
+    scenes.push({ num: parseInt(m[2]), dur: parseFloat(m[3]), delay: parseFloat(m[5]) });
+  }
+
+  // Scale durations proportionally
+  const totalDur = scenes.reduce((s, sc) => s + sc.dur, 0);
+  const ratio = targetDuration / totalDur;
+
+  // Compute new seamless timings
+  const newScenes = {};
+  let acc = 0;
+  for (const sc of scenes) {
+    const newDur = Math.round(sc.dur * ratio * 10) / 10;
+    newScenes[sc.num] = { dur: newDur, delay: Math.round(acc * 10) / 10, oldDelay: sc.delay, oldDur: sc.dur };
+    acc += newDur;
+  }
+
+  // Replace scene lines
+  html = html.replace(sceneRe, (match, pre, num, dur, mid, delay, suf) => {
+    const ns = newScenes[parseInt(num)];
+    return `${pre}${ns.dur}${mid}${ns.delay}${suf}`;
+  });
+
+  // Remap inner animation-delay values proportionally
+  html = html.replace(/animation-delay:\s*([\d.]+)s/g, (match, valStr) => {
+    const val = parseFloat(valStr);
+    if (val < 0.5) return match; // Keep small initial delays
+
+    // Find which scene this delay belongs to
+    for (const [num, ns] of Object.entries(newScenes)) {
+      if (Math.abs(val - ns.delay) < 0.05) return match; // Scene delay already fixed
+      const oldEnd = ns.oldDelay + ns.oldDur;
+      if (ns.oldDelay - 0.5 <= val && val <= oldEnd + 1.0) {
+        const offset = val - ns.oldDelay;
+        const sceneRatio = ns.dur / ns.oldDur;
+        const newVal = Math.round((ns.delay + offset * sceneRatio) * 10) / 10;
+        return `animation-delay: ${newVal}s`;
+      }
+    }
+    return match;
+  });
+
+  writeFileSync(htmlPath, html);
+}
+```
+
+**Key rules:**
+1. Scene delays MUST be seamless: `delay[N] = delay[N-1] + dur[N-1]`
+2. Inner element delays must stay within their scene's visibility window
+3. Scale both durations AND inner delays proportionally when changing total duration
+4. **NEVER use `-shortest`** in ffmpeg when combining video + voiceover — the video is intentionally ~2s longer
+
 ## Static Rendering Script
 
 For rendering a static PNG from the same HTML (without animation capture):

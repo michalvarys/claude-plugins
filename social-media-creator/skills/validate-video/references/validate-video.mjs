@@ -20,7 +20,7 @@
 
 import puppeteer from "puppeteer";
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 
 // === CLI ARGS ===
@@ -70,6 +70,40 @@ async function main() {
     fail("File Check", `HTML file not found: ${absoluteHtml}`);
     printReport();
     process.exit(1);
+  }
+
+  // ============================================
+  // CHECK 0: Scene Gap Detection (static CSS analysis)
+  // ============================================
+  const htmlContent = readFileSync(absoluteHtml, "utf-8");
+  const sceneTimingRe = /\.scene-(\d+)\s*\{[^}]*sceneVis\s+([\d.]+)s[^}]*animation-delay:\s*([\d.]+)s/g;
+  const sceneTimings = [];
+  let match;
+  while ((match = sceneTimingRe.exec(htmlContent)) !== null) {
+    sceneTimings.push({
+      num: parseInt(match[1]),
+      duration: parseFloat(match[2]),
+      delay: parseFloat(match[3]),
+      end: parseFloat(match[2]) + parseFloat(match[3]),
+    });
+  }
+  sceneTimings.sort((a, b) => a.delay - b.delay);
+
+  if (sceneTimings.length >= 2) {
+    const gaps = [];
+    for (let i = 0; i < sceneTimings.length - 1; i++) {
+      const gap = sceneTimings[i + 1].delay - sceneTimings[i].end;
+      if (gap > 0.5) {
+        gaps.push(
+          `${gap.toFixed(1)}s gap between scene-${sceneTimings[i].num} (ends ${sceneTimings[i].end.toFixed(1)}s) and scene-${sceneTimings[i + 1].num} (starts ${sceneTimings[i + 1].delay.toFixed(1)}s)`
+        );
+      }
+    }
+    if (gaps.length > 0) {
+      fail("Scene Gap Detection", `${gaps.length} gap(s) found where no slide is visible:\n  - ${gaps.join("\n  - ")}`);
+    } else {
+      pass("Scene Gap Detection", "All scenes are seamless (no gaps > 0.5s)");
+    }
   }
 
   // Launch Puppeteer
@@ -385,18 +419,14 @@ async function main() {
       const gap = durationS - voDuration;
 
       if (voDuration > durationS) {
-        const needed = Math.ceil(voDuration) + 2;
         fail(
           "Voiceover Duration",
-          `Voiceover (${voDuration.toFixed(1)}s) is LONGER than video (${durationS}s) by ${(voDuration - durationS).toFixed(1)}s — will be cut off!\n` +
-          `       FIX: Extend video to ${needed}s. Rescale all animation-delay and sceneVis durations by ${(needed / durationS).toFixed(3)}, then re-render.`
+          `Voiceover (${voDuration.toFixed(1)}s) is LONGER than video (${durationS}s) by ${(voDuration - durationS).toFixed(1)}s — will be cut off!`
         );
       } else if (gap < 1.5) {
-        const needed = Math.ceil(voDuration) + 2;
-        fail(
+        warn(
           "Voiceover Duration",
-          `Voiceover (${voDuration.toFixed(1)}s) leaves only ${gap.toFixed(1)}s gap — must be >= 1.5s shorter than video (${durationS}s)\n` +
-          `       FIX: Extend video to ${needed}s. Rescale all animation-delay and sceneVis durations by ${(needed / durationS).toFixed(3)}, then re-render.`
+          `Voiceover (${voDuration.toFixed(1)}s) leaves only ${gap.toFixed(1)}s gap — should be ~2s shorter than video (${durationS}s)`
         );
       } else if (gap > 5) {
         warn(

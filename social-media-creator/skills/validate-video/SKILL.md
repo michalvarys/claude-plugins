@@ -23,6 +23,37 @@ This skill validates a rendered video post for common quality issues BEFORE the 
 
 ## What It Checks
 
+### 0. Scene Gap Detection (static CSS analysis) — CRITICAL
+
+Gaps between scenes where NO slide is visible create empty/dead screens that look broken. This is the most common timing bug when adjusting video durations. The validator parses the HTML CSS to detect gaps > 0.5s between consecutive scenes.
+
+**Method:**
+1. Read the HTML file and extract all `.scene-N` timing rules using regex:
+   ```
+   .scene-N { animation: sceneVis Xs ease forwards; animation-delay: Ys; }
+   ```
+2. For each scene, calculate the visibility window: `start = delay`, `end = delay + duration`
+3. Sort scenes by start time
+4. For each consecutive pair, check: `scene[N+1].delay - scene[N].end > 0.5s`
+5. If any gap > 0.5s → **FAIL: Gap of {X}s between scene-{N} and scene-{N+1}**
+6. Otherwise → **PASS**
+
+**Fix guidance:** Scene delays must be seamless — each scene's `animation-delay` should equal the previous scene's `animation-delay + animation-duration`. When scaling video duration (e.g., from `adjust-timings.mjs`), scale both scene durations AND recompute delays as cumulative sums:
+
+```python
+# Correct approach for scaling timings:
+ratio = target_duration / total_scene_duration
+new_scenes = []
+acc_delay = 0.0
+for scene in original_scenes:
+    new_dur = round(scene.dur * ratio, 1)
+    new_scenes.append((new_dur, round(acc_delay, 1)))
+    acc_delay += new_dur
+# Then update inner element delays proportionally within each scene window
+```
+
+**NEVER use `-shortest` ffmpeg flag** when combining video + voiceover. The video is intentionally ~2s longer than voiceover. Use plain `ffmpeg -i video.mp4 -i voiceover.mp3 -c:v copy -c:a aac -b:a 192k output.mp4` without `-shortest`.
+
 ### 1. Scene Overlap Detection (HTML analysis)
 
 Multiple scenes visible at the same frame is the most destructive video bug. The validator checks every 0.5s of the video timeline for scene overlap.
@@ -69,18 +100,11 @@ The voiceover must be approximately 2 seconds shorter than the video to leave ro
    ```
 3. Check constraints:
    - `voiceover_duration > video_duration` → **FAIL: Voiceover is LONGER than video by {X}s — voiceover will be cut off!**
-   - `voiceover_duration > (video_duration - 1.5)` → **FAIL: Voiceover leaves less than 1.5s of silence at end — video must be extended**
+   - `voiceover_duration > (video_duration - 1.5)` → **WARNING: Voiceover leaves less than 1.5s of silence at end — should be ~2s shorter**
    - `voiceover_duration < (video_duration - 5)` → **WARNING: Voiceover ends {X}s before video — too much dead silence at the end**
    - Otherwise → **PASS**
 
-**Fix guidance when voiceover is too long:**
-1. **Extend the video** to `ceil(voiceover_duration) + 2` seconds
-2. Proportionally rescale ALL CSS animation timings: multiply every `animation-delay` value and every `sceneVis` duration by `new_duration / old_duration`
-3. Update the render script's DURATION constant
-4. Re-render the video, then re-mix and re-merge audio
-5. Re-generating TTS to hit an exact target duration is unreliable — extending the video is the correct fix
-
-**Fix guidance when voiceover is too short:** Add more content to the voiceover script and regenerate, or shorten the video duration.
+**Fix guidance:** If voiceover is too long, shorten the voiceover script and regenerate. NEVER extend the video to fit the voiceover.
 
 ### 4. First Animation Timing (HTML analysis)
 

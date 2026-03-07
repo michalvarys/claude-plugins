@@ -46,12 +46,7 @@ Create animated video posts using HTML/CSS animations captured frame-by-frame vi
 
 3. **No long silent gaps.** Every scene transition should overlap slightly (0.5s) so the viewer always sees content while the voiceover is speaking. Dead air with no text visible = bad.
 
-4. **Video duration MUST accommodate the voiceover.** Design the video first, then generate voiceover targeting ~2s shorter. But TTS duration is unpredictable — after generating voiceover, ALWAYS check its actual duration with ffprobe. **If voiceover is longer than (video - 2s), extend the video:**
-   - Set new duration = `ceil(voiceover_duration) + 2`
-   - Rescale ALL `animation-delay` and `sceneVis` duration values by `new_duration / old_duration`
-   - Update DURATION in render script
-   - Re-render the video
-   - **Do NOT try to regenerate TTS to hit an exact duration** — it's unreliable and wastes API credits
+4. **Video duration is the master clock.** Design the video first, then write the voiceover script to FIT the video timing. If the voiceover is longer than (video - 2s), shorten the script — do NOT extend the video.
 
 ### Animation Speed Guidelines
 
@@ -64,12 +59,14 @@ Create animated video posts using HTML/CSS animations captured frame-by-frame vi
 ### Example: 25s Video Timeline
 
 ```
-Scene 1 (0–5s):    Hook text appears at 0.3s — voiceover starts immediately
-Scene 2 (4.5–11s): Content slides in at 4.8s — no gap between scenes
-Scene 3 (10.5–19s): Next point at 10.8s
-Scene 4 (18.5–23s): Key insight at 18.8s
-Scene 5 (22.5–25s): CTA + branding — voiceover ends here (~23s), branding lingers
+Scene 1 (0–6s):    dur=6s, Hook text appears at 0.3s — voiceover starts immediately
+Scene 2 (6–13s):   dur=7s, Content slides in at 6.3s — seamless from scene 1
+Scene 3 (13–19s):  dur=6s, Next point at 13.3s — seamless from scene 2
+Scene 4 (19–23s):  dur=4s, Key insight at 19.3s — seamless from scene 3
+Scene 5 (23–25s):  dur=2s, CTA + branding — voiceover ends here (~23s), branding lingers
 ```
+
+**Verify:** 6+7+6+4+2 = 25s total. Each delay = previous delay + previous duration. No gaps.
 
 ## CSS Animation System
 
@@ -106,11 +103,41 @@ The base `.scene` class controls scene hiding/showing. It must:
 }
 
 /* Scene timing — only scene-specific classes get animation */
-.scene-1 { animation: sceneVis 7s ease forwards; animation-delay: 0s; }
-.scene-2 { animation: sceneVis 8.5s ease forwards; animation-delay: 6.5s; }
-.scene-3 { animation: sceneVis 8s ease forwards; animation-delay: 14.5s; }
-.scene-4 { animation: sceneVis 7s ease forwards; animation-delay: 22s; }
-.scene-5 { animation: sceneVis 6.5s ease forwards; animation-delay: 28.5s; }
+/* CRITICAL: Delays MUST be seamless — each delay = previous delay + previous duration */
+.scene-1 { animation: sceneVis 7s ease forwards; animation-delay: 0s; }     /* 0 + 7 = 7 */
+.scene-2 { animation: sceneVis 8.5s ease forwards; animation-delay: 7s; }   /* 7 + 8.5 = 15.5 */
+.scene-3 { animation: sceneVis 8s ease forwards; animation-delay: 15.5s; }  /* 15.5 + 8 = 23.5 */
+.scene-4 { animation: sceneVis 7s ease forwards; animation-delay: 23.5s; }  /* 23.5 + 7 = 30.5 */
+.scene-5 { animation: sceneVis 4.5s ease forwards; animation-delay: 30.5s; }/* 30.5 + 4.5 = 35 = total */
+```
+
+**CRITICAL: Seamless Scene Timing — No Gaps Allowed**
+
+Scene delays MUST form a continuous chain where each scene starts exactly when the previous one ends. Gaps between scenes create empty/dead screens with no visible content — the most common and destructive timing bug.
+
+**Rule: `scene[N+1].delay = scene[N].delay + scene[N].duration`**
+
+When scaling video duration (e.g., after generating voiceover), recalculate ALL scene timings:
+1. Scale each scene duration proportionally: `new_dur = old_dur × (target_total / old_total)`
+2. Recompute delays as cumulative sums: `delay[0] = 0`, `delay[N] = delay[N-1] + dur[N-1]`
+3. Scale inner element delays proportionally within each scene's window
+
+**NEVER create gaps** by adding arbitrary delays between scenes. If you see timing like:
+```css
+/* WRONG — 4.3s gap between scene 1 (ends 11.6s) and scene 2 (starts 15.9s) */
+.scene-1 { animation: sceneVis 11.6s ease forwards; animation-delay: 0s; }
+.scene-2 { animation: sceneVis 11.6s ease forwards; animation-delay: 15.9s; }
+```
+Fix it to:
+```css
+/* CORRECT — seamless transition */
+.scene-1 { animation: sceneVis 11.6s ease forwards; animation-delay: 0s; }
+.scene-2 { animation: sceneVis 11.6s ease forwards; animation-delay: 11.6s; }
+```
+
+**NEVER use `-shortest` ffmpeg flag** when combining video + voiceover. The video is intentionally ~2s longer than voiceover. Use:
+```bash
+ffmpeg -y -i video.mp4 -i voiceover.mp3 -c:v copy -c:a aac -b:a 192k final.mp4
 ```
 
 **Common mistakes that cause scene overlap:**
