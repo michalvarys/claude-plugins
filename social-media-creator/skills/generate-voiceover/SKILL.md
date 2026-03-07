@@ -71,13 +71,33 @@ writeFileSync(outputPath, Buffer.from(arrayBuffer));
 
 ### Duration Rule — CRITICAL
 
-**The voiceover MUST be ~2 seconds shorter than the video duration.** This is a hard requirement.
+**The voiceover MUST be shorter than the video.** The last ~2 seconds should show CTA/branding silently.
 
-- Video = 25s → voiceover script targets ~23s of speech (~2.5 words/sec × 23s ≈ 57 words)
+**Target script length:** Aim for ~2.5 words/second. For a 25s video, target ~57 words (~23s of speech).
+
+- Video = 25s → voiceover script targets ~23s
 - Video = 30s → voiceover script targets ~28s
 - Video = 45s → voiceover script targets ~43s
 
-The last 2 seconds of the video should show the CTA/branding silently, letting it breathe. If the generated voiceover is longer than (video - 2s), **shorten the script** — do NOT extend the video.
+### MANDATORY: Verify Duration After Generation
+
+**TTS output duration is unpredictable** — the same word count can produce wildly different durations depending on pacing, pauses, and language. You MUST check the actual voiceover duration with ffprobe immediately after generating:
+
+```bash
+ffprobe -v error -show_entries format=duration -of csv=p=0 voiceover.mp3
+```
+
+**If voiceover is LONGER than (video_duration - 2s):**
+1. **Extend the video** to `ceil(voiceover_duration) + 2` seconds
+2. Proportionally rescale ALL CSS animation timings: multiply every `animation-delay` value and every `sceneVis` duration by `new_duration / old_duration`
+3. Update the render script's DURATION constant
+4. Re-render the video at the new duration
+5. This is the correct approach because re-generating TTS to hit an exact duration is unreliable and wastes API credits
+
+**If voiceover is much SHORTER than video (gap > 5s):**
+- Shorten the video duration or add more content to the voiceover script and regenerate
+
+**NEVER ship a video where voiceover is longer than the video** — the audio will be cut off mid-sentence in the final output.
 
 ### Voiceover Must Start Immediately
 
@@ -122,11 +142,14 @@ Převedeme váš WordPress k nám zdarma. Neváhejte.
 
 ## Workflow
 
-1. Write voiceover script matching the video timeline
+1. Write voiceover script matching the video timeline (~2.5 words/sec)
 2. Set the ELEVENLABS_API_KEY in .env file
 3. Call the ElevenLabs TTS API with the script
 4. Save the MP3 output
-5. Use the MP3 as audio input when rendering the video (see create-animated-video skill)
+5. **MANDATORY: Check voiceover duration** with ffprobe
+6. **If voiceover > (video - 2s): extend the video** — rescale HTML timings proportionally, update DURATION, re-render
+7. **If voiceover < (video - 5s): regenerate** with a longer script or shorten the video
+8. Mix audio and merge with video (see create-animated-video and generate-background-music skills)
 
 ## Integrating Audio with Video
 

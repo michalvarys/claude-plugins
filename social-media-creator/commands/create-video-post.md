@@ -47,11 +47,25 @@ This is the full video production pipeline. Follow these steps IN ORDER:
 
 ## Step 3: Generate Voiceover
 1. Read the generate-voiceover skill
-2. **Voiceover MUST be ~2 seconds shorter than video duration** (e.g., 25s video → ~23s voiceover)
-3. Write a voiceover script: ~2.5 words/second, first sentence is an immediate hook (NO filler intro)
+2. Write a voiceover script: ~2.5 words/second, targeting ~2s shorter than video (e.g., 25s video → ~57 words for ~23s)
+3. First sentence is an immediate hook (NO filler intro)
 4. Generate audio via ElevenLabs TTS API (use browser JS if sandbox blocks API)
-5. **Verify duration**: if voiceover > (video - 2s), shorten the script and regenerate
-6. Save voiceover MP3 and script to the post folder
+5. Save voiceover MP3 and script to the post folder
+
+## Step 3.5: Verify Voiceover Duration & Adjust Video (MANDATORY GATE)
+**TTS output duration is unpredictable — you MUST verify and adjust.**
+1. Check actual voiceover duration:
+   ```bash
+   ffprobe -v error -show_entries format=duration -of csv=p=0 {slug}-voiceover.mp3
+   ```
+2. **If voiceover > (video_duration - 2s): EXTEND THE VIDEO** (this is the most common case!)
+   - New duration = `ceil(voiceover_duration) + 2`
+   - Rescale ALL CSS `animation-delay` values and `sceneVis` durations: multiply by `new_duration / old_duration`
+   - Update DURATION in render script
+   - Re-render the silent video at the new duration
+   - Do NOT try to regenerate TTS to hit an exact duration — it's unreliable and wastes API credits
+3. **If voiceover < (video_duration - 5s):** Shorten video or regenerate with longer script
+4. **Do NOT proceed** until: `video_duration - voiceover_duration` is between 1.5s and 5s
 
 ## Step 4: Generate Background Music
 1. Read the generate-background-music skill

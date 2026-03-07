@@ -46,7 +46,12 @@ Create animated video posts using HTML/CSS animations captured frame-by-frame vi
 
 3. **No long silent gaps.** Every scene transition should overlap slightly (0.5s) so the viewer always sees content while the voiceover is speaking. Dead air with no text visible = bad.
 
-4. **Video duration is the master clock.** Design the video first, then write the voiceover script to FIT the video timing. If the voiceover is longer than (video - 2s), shorten the script — do NOT extend the video.
+4. **Video duration MUST accommodate the voiceover.** Design the video first, then generate voiceover targeting ~2s shorter. But TTS duration is unpredictable — after generating voiceover, ALWAYS check its actual duration with ffprobe. **If voiceover is longer than (video - 2s), extend the video:**
+   - Set new duration = `ceil(voiceover_duration) + 2`
+   - Rescale ALL `animation-delay` and `sceneVis` duration values by `new_duration / old_duration`
+   - Update DURATION in render script
+   - Re-render the video
+   - **Do NOT try to regenerate TTS to hit an exact duration** — it's unreliable and wastes API credits
 
 ### Animation Speed Guidelines
 

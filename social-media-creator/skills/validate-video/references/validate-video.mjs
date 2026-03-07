@@ -385,14 +385,18 @@ async function main() {
       const gap = durationS - voDuration;
 
       if (voDuration > durationS) {
+        const needed = Math.ceil(voDuration) + 2;
         fail(
           "Voiceover Duration",
-          `Voiceover (${voDuration.toFixed(1)}s) is LONGER than video (${durationS}s) by ${(voDuration - durationS).toFixed(1)}s — will be cut off!`
+          `Voiceover (${voDuration.toFixed(1)}s) is LONGER than video (${durationS}s) by ${(voDuration - durationS).toFixed(1)}s — will be cut off!\n` +
+          `       FIX: Extend video to ${needed}s. Rescale all animation-delay and sceneVis durations by ${(needed / durationS).toFixed(3)}, then re-render.`
         );
       } else if (gap < 1.5) {
-        warn(
+        const needed = Math.ceil(voDuration) + 2;
+        fail(
           "Voiceover Duration",
-          `Voiceover (${voDuration.toFixed(1)}s) leaves only ${gap.toFixed(1)}s gap — should be ~2s shorter than video (${durationS}s)`
+          `Voiceover (${voDuration.toFixed(1)}s) leaves only ${gap.toFixed(1)}s gap — must be >= 1.5s shorter than video (${durationS}s)\n` +
+          `       FIX: Extend video to ${needed}s. Rescale all animation-delay and sceneVis durations by ${(needed / durationS).toFixed(3)}, then re-render.`
         );
       } else if (gap > 5) {
         warn(

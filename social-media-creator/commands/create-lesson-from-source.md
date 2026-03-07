@@ -140,15 +140,29 @@ For EACH lesson, follow the full video pipeline:
 
 ### Generate Voiceover
 - Read generate-voiceover skill
-- Voiceover ~2s shorter than video
+- Write script targeting ~2s shorter than video (~2.5 words/sec)
 - Content derived from the source material for this lesson
 - Reference the series: "V této lekci se podíváme na...", "V minulé lekci jsme zjistili..."
 - First sentence = immediate hook, no filler
+
+### Verify Voiceover Duration & Adjust Video (MANDATORY)
+**TTS output duration is unpredictable — you MUST verify and adjust.**
+```bash
+ffprobe -v error -show_entries format=duration -of csv=p=0 voiceover.mp3
+```
+- **If voiceover > (video - 2s): EXTEND THE VIDEO**
+  - New duration = `ceil(voiceover_duration) + 2`
+  - Rescale ALL `animation-delay` and `sceneVis` durations by `new_duration / old_duration`
+  - Update DURATION in render script, re-render
+  - Do NOT regenerate TTS — extend the video instead
+- **If voiceover < (video - 5s):** Regenerate with longer script or shorten video
+- Proceed only when gap is 1.5–5s
 
 ### Generate Background Music
 - Read generate-background-music skill
 - Use the **SAME music prompt** for all lessons (consistent feel across the series)
 - Upbeat, energetic style
+- Duration matches the (possibly extended) video
 
 ### Mix Audio
 ```bash

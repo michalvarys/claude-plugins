@@ -114,21 +114,32 @@ For EACH lesson, follow the full video creation pipeline (from create-video-post
    - If the fix involves the shared series template, apply the fix to all subsequent lessons too
    - Do NOT proceed to voiceover until this passes
 4. **Generate voiceover** (read generate-voiceover skill):
-   - Voiceover ~2s shorter than video
+   - Write script targeting ~2s shorter than video (~2.5 words/sec)
    - First sentence is an immediate hook
    - Reference the series context ("V dnešní lekci...", "V minulé lekci jsme si ukázali...")
-5. **Generate background music** (read generate-background-music skill):
+5. **VERIFY VOICEOVER DURATION (MANDATORY)** — TTS duration is unpredictable:
+   ```bash
+   ffprobe -v error -show_entries format=duration -of csv=p=0 voiceover.mp3
+   ```
+   - **If voiceover > (video - 2s): EXTEND THE VIDEO**
+     - New duration = `ceil(voiceover_duration) + 2`
+     - Rescale ALL `animation-delay` and `sceneVis` durations by `new_duration / old_duration`
+     - Update DURATION in render script, re-render video
+     - Do NOT regenerate TTS — extend the video instead
+   - **If voiceover < (video - 5s):** Regenerate with longer script or shorten video
+   - Proceed only when gap is 1.5–5s
+6. **Generate background music** (read generate-background-music skill):
    - Use the SAME music prompt for all lessons in the series (consistent feel)
    - Upbeat, energetic style
-6. **Mix audio**: voiceover at 100%, bg music at 1.5%, `normalize=0`
-7. **VALIDATE final video (MANDATORY GATE)**:
+7. **Mix audio**: voiceover at 100%, bg music at 1.5%, `normalize=0`
+9. **VALIDATE final video (MANDATORY GATE)**:
    - Run full validation:
      ```bash
      node validate-video.mjs outputs/{series-slug}/lesson-{NN}-{slug}/lesson-{NN}-video.html {duration} 1080 1920 outputs/{series-slug}/lesson-{NN}-{slug}/lesson-{NN}-voiceover.mp3 outputs/{series-slug}/lesson-{NN}-{slug}/lesson-{NN}-final.mp4
      ```
    - If any check **FAILs** — fix and re-validate
    - **Only after this lesson passes** → proceed to next lesson
-8. **Generate captions** for each platform
+10. **Generate captions** for each platform
 
 ### Typography Rules (same as create-video-post)
 - Body/detail: `clamp(1.2rem, 3.2vh, 3.5rem)` minimum

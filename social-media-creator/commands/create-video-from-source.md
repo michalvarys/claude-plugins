@@ -99,14 +99,27 @@ Follow Steps 1–6 from `create-video-post`:
 
 ### Generate Voiceover
 - Read generate-voiceover skill
-- Voiceover ~2s shorter than video
-- Script based on the Content Brief, first sentence = immediate hook
+- Write script targeting ~2s shorter than video (~2.5 words/sec), first sentence = immediate hook
 - Language matches target audience (usually Czech)
+- Script based on the Content Brief
+
+### Verify Voiceover Duration & Adjust Video (MANDATORY)
+**TTS output duration is unpredictable — you MUST verify and adjust.**
+```bash
+ffprobe -v error -show_entries format=duration -of csv=p=0 voiceover.mp3
+```
+- **If voiceover > (video - 2s): EXTEND THE VIDEO**
+  - New duration = `ceil(voiceover_duration) + 2`
+  - Rescale ALL `animation-delay` and `sceneVis` durations by `new_duration / old_duration`
+  - Update DURATION in render script, re-render
+  - Do NOT regenerate TTS — extend the video instead
+- **If voiceover < (video - 5s):** Regenerate with longer script or shorten video
+- Proceed only when gap is 1.5–5s
 
 ### Generate Background Music
 - Read generate-background-music skill
 - Upbeat, energetic prompt
-- Duration matches video
+- Duration matches the (possibly extended) video
 
 ### Mix Audio
 ```bash

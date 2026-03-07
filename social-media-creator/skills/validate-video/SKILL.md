@@ -69,11 +69,18 @@ The voiceover must be approximately 2 seconds shorter than the video to leave ro
    ```
 3. Check constraints:
    - `voiceover_duration > video_duration` → **FAIL: Voiceover is LONGER than video by {X}s — voiceover will be cut off!**
-   - `voiceover_duration > (video_duration - 1.5)` → **WARNING: Voiceover leaves less than 1.5s of silence at end — should be ~2s shorter**
+   - `voiceover_duration > (video_duration - 1.5)` → **FAIL: Voiceover leaves less than 1.5s of silence at end — video must be extended**
    - `voiceover_duration < (video_duration - 5)` → **WARNING: Voiceover ends {X}s before video — too much dead silence at the end**
    - Otherwise → **PASS**
 
-**Fix guidance:** If voiceover is too long, shorten the voiceover script and regenerate. NEVER extend the video to fit the voiceover.
+**Fix guidance when voiceover is too long:**
+1. **Extend the video** to `ceil(voiceover_duration) + 2` seconds
+2. Proportionally rescale ALL CSS animation timings: multiply every `animation-delay` value and every `sceneVis` duration by `new_duration / old_duration`
+3. Update the render script's DURATION constant
+4. Re-render the video, then re-mix and re-merge audio
+5. Re-generating TTS to hit an exact target duration is unreliable — extending the video is the correct fix
+
+**Fix guidance when voiceover is too short:** Add more content to the voiceover script and regenerate, or shorten the video duration.
 
 ### 4. First Animation Timing (HTML analysis)
 
