@@ -221,6 +221,67 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 | Security CSV ID | `access_{model}_{group}` | `access_delivery_tracking_user` |
 | Wizard model name | `{model}.wizard_name` | `sale.delivery.tracking.import` |
 
+## Theme Module Pattern (`theme_*`)
+
+In Odoo 18, modules named `theme_*` have special auto-conversion behavior:
+
+### Auto-Conversion Rules (CRITICAL)
+
+| What you write | What Odoo creates | Notes |
+|---|---|---|
+| `<record model="ir.ui.view">` | `theme.ir.ui.view` | Auto-converted by loader |
+| `<record model="ir.asset">` | `theme.ir.asset` | Auto-converted by loader |
+| `<template id="...">` | `theme.ir.ui.view` | NOT `ir.ui.view` |
+| `<record model="website.page">` | `theme.website.page` | Auto-converted |
+| `<record model="website.menu">` | `theme.website.menu` | Auto-converted |
+
+> **WARNING**: NEVER use direct `ir.ui.view` or `ir.asset` models in `theme_*` modules. It causes `"found record of different model theme.ir.asset"` error on upgrade. Always use the `theme.*` models explicitly.
+
+### Correct Models to Use
+
+- `theme.ir.ui.view` — for views and snippets
+- `theme.ir.asset` — for SCSS/JS asset registration
+- `theme.website.page` — for website pages (has NO `key` field)
+- `theme.website.menu` — for menu items
+
+### Theme Copy Mechanism
+
+Theme records are **templates** that get copied to real records when theme is applied:
+- `theme.ir.ui.view` → copied to `ir_ui_view` with `website_id` set
+- `theme.website.page` → copied to `website.page`
+- `theme.website.menu` → copied to `website.menu`
+- This happens during "Refresh Theme" or module upgrade (log: `Load theme ['module'] for website N from template`)
+
+### XML Structure Rules
+
+```xml
+<!-- CORRECT: <template> directly under <odoo> -->
+<odoo>
+<template id="my_view" name="My View">...</template>
+<record id="my_page" model="theme.website.page">...</record>
+</odoo>
+
+<!-- WRONG: <template> inside <data> — RNG schema rejects it -->
+<odoo>
+<data>
+    <template id="my_view">...</template>  <!-- ERROR! -->
+</data>
+</odoo>
+```
+
+### Module Reinstall Workflow
+
+```bash
+# 1. Stop web to avoid SerializationFailure
+DOCKER_HOST= docker compose -f ... stop web
+# 2. Run upgrade with run --rm -T (not exec, since web is stopped)
+DOCKER_HOST= docker compose -f ... run --rm -T web python3 odoo-bin \
+    -d DB_NAME -u module_name --stop-after-init \
+    --db_host DB_HOST --db_port 5432 -r USER -w PASS --addons-path="..."
+# 3. Start web back
+DOCKER_HOST= docker compose -f ... up -d web
+```
+
 ## Extension Module Pattern
 
 When extending an existing model from another module:

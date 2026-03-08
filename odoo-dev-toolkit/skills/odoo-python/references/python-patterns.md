@@ -365,3 +365,46 @@ raise UserError(_("Order %s cannot be cancelled.", order.name))
 # Lazy translation for field strings is automatic — just use string parameter
 name = fields.Char(string="Name")  # automatically translatable
 ```
+
+## Docker Operations for Module Development
+
+### Module Upgrade Command
+
+```bash
+# Use run --rm -T when web container is stopped (avoids SerializationFailure)
+DOCKER_HOST= docker compose -f docker-compose.yml run --rm -T web \
+    python3 odoo-bin -d DB_NAME -u module_name --stop-after-init \
+    --db_host DB_HOST --db_port 5432 -r USER -w PASS \
+    --addons-path="/app/addons,/app/varyshop,..."
+```
+
+Key notes:
+- `run --rm -T` instead of `exec` — works when web container is stopped
+- Always verify correct `--db_host` from docker-compose.yml (different projects use different hosts)
+- `DOCKER_HOST=` prefix required on macOS with OrbStack
+- `--stop-after-init` exits after loading, doesn't start HTTP server
+
+### Module Uninstall via Python API
+
+```python
+# Direct uninstall (use when UI "Uninstall" fails)
+import odoo
+config.parse_config(['-d', 'mydb', '--db_host', 'db-host', ...])
+odoo.service.server.start(preload=[], stop=True)
+registry = odoo.registry('mydb')
+with registry.cursor() as cr:
+    env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+    mod = env['ir.module.module'].search([('name', '=', 'my_module')])
+    mod.button_immediate_uninstall()
+```
+
+### Safe Upgrade Workflow
+
+```bash
+# 1. Stop web to avoid psycopg2.errors.SerializationFailure
+DOCKER_HOST= docker compose -f ... stop web
+# 2. Run upgrade
+DOCKER_HOST= docker compose -f ... run --rm -T web python3 odoo-bin -d DB -u MODULE --stop-after-init ...
+# 3. Start web
+DOCKER_HOST= docker compose -f ... up -d web
+```
