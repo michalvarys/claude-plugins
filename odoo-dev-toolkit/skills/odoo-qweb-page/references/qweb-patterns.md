@@ -754,3 +754,79 @@ For Odoo images, use the `img-fluid` class and Odoo's image URL pattern:
 ```
 
 Use `loading="lazy"` for images below the fold to improve page speed.
+
+---
+
+## Language Selector in Custom Templates
+
+When using `t-call="website.layout"` with `no_header=True`, the `frontend_languages` dict from Odoo 18 may NOT be reliably available in the inner template scope. A more reliable approach is to use `request.website.language_ids` directly.
+
+### Reliable language selector pattern
+
+```xml
+<!-- Set language data from request.website -->
+<t t-set="bwd_languages" t-value="request.website.language_ids"/>
+<t t-set="bwd_active_lang" t-value="bwd_languages.filtered(lambda l: l.code == request.env.lang)[:1] or bwd_languages[:1]"/>
+
+<!-- Only show selector if multiple languages exist -->
+<t t-if="len(bwd_languages) > 1">
+    <div class="prefix-lang-selector">
+        <!-- Current language display -->
+        <span>
+            <img t-att-src="bwd_active_lang.flag_image_url" width="20" height="15"/>
+            <t t-out="bwd_active_lang.name"/>
+        </span>
+        <!-- Language options -->
+        <ul>
+            <t t-foreach="bwd_languages" t-as="lg">
+                <li t-att-class="'active' if lg.code == request.env.lang else ''">
+                    <a t-attf-href="/web/set_lang?lang={{ lg.code }}&amp;r={{ request.httprequest.path }}">
+                        <img t-att-src="lg.flag_image_url" width="20" height="15"/>
+                        <t t-out="lg.name"/>
+                    </a>
+                </li>
+            </t>
+        </ul>
+    </div>
+</t>
+```
+
+### Key points
+
+- `res.lang` records have a `flag_image_url` field for flag icons
+- Language switching URL: `/web/set_lang?lang={{ lg.code }}&r={{ request.httprequest.path }}`
+- Condition `t-if="len(bwd_languages) > 1"` hides the selector when only one language is active
+- Use `request.env.lang` to detect the current active language
+
+---
+
+## Company Data in QWeb Templates
+
+Access company information via `request.env.company.sudo()` in QWeb templates.
+
+### Common company fields
+
+```xml
+<!-- Phone: check mobile first, then phone -->
+<t t-set="company" t-value="request.env.company.sudo()"/>
+<a t-att-href="'tel:' + (company.mobile or company.phone or '')"
+   t-if="company.mobile or company.phone">
+    <t t-out="company.mobile or company.phone"/>
+</a>
+
+<!-- Email -->
+<a t-att-href="'mailto:' + (company.email or '')">
+    <t t-out="company.email"/>
+</a>
+
+<!-- Social media links -->
+<a t-att-href="company.social_instagram" t-if="company.social_instagram">Instagram</a>
+<a t-att-href="company.social_facebook" t-if="company.social_facebook">Facebook</a>
+
+<!-- Address -->
+<t t-out="company.street"/>
+<t t-out="company.city"/>
+<t t-out="company.zip"/>
+```
+
+**Important:** Use the `mobile` field (not just `phone`) for phone numbers. The `phone` field may be empty while `mobile` has the actual number. Social media fields are: `social_instagram`, `social_facebook`, `social_twitter`, `social_youtube`, `social_linkedin`, `social_github` on `res.company`.

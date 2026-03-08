@@ -1,5 +1,29 @@
 # Odoo 18 Theme Module: Snippets & Pages Patterns
 
+## CRITICAL: theme_* Module Auto-Conversion
+
+In Odoo 18, the module loader **automatically converts** standard models to theme models inside `theme_*` modules:
+
+- `<record model="ir.ui.view">` --> auto-creates `theme.ir.ui.view`
+- `<record model="ir.asset">` --> auto-creates `theme.ir.asset`
+- `<template>` tags --> auto-creates `theme.ir.ui.view` (NOT `ir.ui.view`)
+
+**You CANNOT use direct `ir.ui.view` / `ir.asset` models in theme modules.** Doing so creates model conflicts during upgrade with errors like: `found record of different model theme.ir.asset`.
+
+Always use the theme model variants explicitly: `theme.ir.ui.view`, `theme.ir.asset`, `theme.website.page`, `theme.website.menu`.
+
+## Theme Copy Mechanism — How Records Get Applied
+
+`theme.ir.ui.view` records are **templates** — they get copied to real `ir_ui_view` records when the theme is applied to a website. This happens:
+- During "Refresh Theme" in the website editor
+- During module upgrade (log message: `Load theme ['module_name'] for website N from template`)
+
+The copied views get:
+- `key` like `theme_module.view_id`
+- `website_id` set to the specific website
+
+`theme.website.page` and `theme.website.menu` work the same way — they are templates that get copied to `website.page` and `website.menu` respectively when the theme is applied.
+
 ## CRITICAL: Do NOT use `<record model="theme.ir.ui.view">` for pages and snippets
 
 In Odoo 18 theme modules (`theme_*`), using `<record model="theme.ir.ui.view">` with explicit `<field name="arch">` is the **WRONG pattern** for defining pages and snippets. It causes:
@@ -195,6 +219,16 @@ Key rules:
 ```
 
 Do NOT register JS as `theme.ir.asset` records — the manifest `assets` dict is cleaner and avoids duplication issues.
+
+---
+
+## Snippet Registration in Theme Modules
+
+Snippet registry views (those that `inherit_id="website.snippets"`) use `<template>` tag, which creates `theme.ir.ui.view` automatically. Each individual snippet view also uses `<template>` — all are auto-converted to `theme.ir.ui.view`.
+
+After theme upgrade, all snippet views get copied to `ir_ui_view` with `website_id` set to the specific website.
+
+**Troubleshooting:** If you see a JS error like `Cannot read properties of undefined (reading 'dataset')` in the snippet editor after adding new snippets, this may indicate a stale asset cache. Clear it by loading the page with `?debug=assets` or by clearing browser cache.
 
 ---
 
