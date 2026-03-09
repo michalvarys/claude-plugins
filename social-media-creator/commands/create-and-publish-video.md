@@ -103,6 +103,16 @@ Follow Steps 0–6 from the `create-video-post` command exactly:
 2. If any check **FAILs** — STOP, fix the issue, and re-validate
 3. Only proceed to publishing after all checks pass
 
+### Step 5.7: Generate Thumbnail (MANDATORY)
+1. Use Puppeteer to screenshot the HTML at **3 seconds** (Scene 1 hook fully visible):
+   ```javascript
+   await page.goto(`file://${htmlPath}`, { waitUntil: "networkidle0" });
+   await new Promise(r => setTimeout(r, 3000));
+   await page.screenshot({ path: "thumbnail.png", type: "png" });
+   ```
+2. Save as `thumbnail.png` in the post folder
+3. This prevents blank/black grid previews on all platforms
+
 ### Step 6: Generate Post Text
 1. Write platform-specific post text:
    - Instagram: full caption with hashtags
@@ -141,6 +151,7 @@ Follow Steps 0–6 from the `create-video-post` command exactly:
      -F 'platform[]=tiktok' \
      -F 'async_upload=true' \
      -F 'photos[]=@{slug}-final.mp4' \
+     -F 'thumbnail=@thumbnail.png' \
      -F 'instagram_title=Instagram caption with #hashtags' \
      -F 'media_type=IMAGE' \
      -F 'privacy_level=PUBLIC_TO_EVERYONE' \

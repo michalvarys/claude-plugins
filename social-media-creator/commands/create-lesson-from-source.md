@@ -187,6 +187,24 @@ ffmpeg -y -i video.mp4 -i mixed_audio.m4a \
 2. If any check **FAILs** — fix and re-validate
 3. **Do NOT start the next lesson** until this one passes all checks
 
+### Generate Thumbnail (MANDATORY)
+
+Every lesson MUST have a thumbnail — without it, videos appear as blank/black in platform grids.
+
+1. Use Puppeteer to screenshot the HTML at **3 seconds** (when Scene 1 hook text + subtitle are fully visible)
+2. Save as `thumbnail.png` (1080×1920 PNG) in the lesson folder
+3. For batch generation across all lessons, create a simple script:
+
+```javascript
+const page = await browser.newPage();
+await page.setViewport({ width: 1080, height: 1920 });
+await page.goto(`file://${htmlPath}`, { waitUntil: "networkidle0" });
+await new Promise(r => setTimeout(r, 3000)); // Wait for hook animations
+await page.screenshot({ path: "thumbnail.png", type: "png" });
+```
+
+4. The thumbnail will be included when publishing (see publish-post skill — `thumbnail` field)
+
 ### Generate Captions
 - Platform-specific text with series context
 - Include "Lekce X/Y" in every caption

@@ -75,6 +75,7 @@ Default platforms: `instagram`, `threads`, `tiktok`, `facebook`, `youtube`
 |-------|------|-------------|
 | `video` | file | Video file — use `@filename.mp4` in curl |
 | `media_type` | string | Instagram: `FEED`, `REELS`, `STORIES` |
+| `thumbnail` | file | **RECOMMENDED** — Cover image for video grid/feed. Use `@thumbnail.png` in curl. Without this, platforms show a blank/black frame as the video preview. |
 
 ## Platform-Specific Text Fields
 
@@ -158,6 +159,7 @@ RESPONSE=$(curl -s \
   -F 'platform[]=youtube' \
   -F 'async_upload=true' \
   -F 'video=@video-final.mp4' \
+  -F 'thumbnail=@thumbnail.png' \
   -F 'media_type=REELS' \
   -F "title=YouTube Video Title" \
   -F 'instagram_title=Instagram caption with #hashtags' \
@@ -314,12 +316,13 @@ After every successful publish (or when generating a publish script), **ALWAYS s
 
 1. Identify content type: image, carousel, or video
 2. Choose the correct endpoint (`/upload` for video, `/upload_photos` for images)
-3. Write post text optimized for each platform — **check character limits** (Facebook 255, TikTok 150)
-4. **ALWAYS include the generic `title` field** (YouTube requires it)
-5. Generate a curl command or shell script with all required fields
-6. Execute the curl command (or provide script for user to run locally)
-7. **Parse the API response — check for `"success":true`** before confirming success
-8. **Save `publish-meta.json`** to the post folder
+3. **For videos**: Check if a `thumbnail.png` exists in the same folder as the video. If found, include `-F 'thumbnail=@thumbnail.png'` in the upload. This is critical — without a thumbnail, platforms show blank/black frames in the feed grid.
+4. Write post text optimized for each platform — **check character limits** (Facebook 255, TikTok 150)
+5. **ALWAYS include the generic `title` field** (YouTube requires it)
+6. Generate a curl command or shell script with all required fields
+7. Execute the curl command (or provide script for user to run locally)
+8. **Parse the API response — check for `"success":true`** before confirming success
+9. **Save `publish-meta.json`** to the post folder
 
 ## Important Notes
 
