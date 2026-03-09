@@ -53,6 +53,13 @@ Default platforms: `instagram`, `threads`, `tiktok`, `facebook`, `youtube`
 
 5. **`async_upload=true` always** — The API processes uploads in background. Response only confirms the upload was accepted, not that it was published.
 
+6. **Each platform has its own cover/thumbnail field** — The `thumbnail` file field only works for **YouTube**. Other platforms need their own parameters:
+   - **Instagram**: `thumb_offset=3000` (ms) or `cover_url` (hosted URL). Without this → blank/black grid.
+   - **TikTok**: `cover_timestamp=3000` (ms, integer). Default is 1000ms which may show a blank frame.
+   - **Facebook**: `thumbnail_url` (hosted URL, only with `facebook_media_type=VIDEO`, not REELS).
+   - **Threads**: No cover parameter exists — platform auto-selects.
+   - **Always include both `thumb_offset` and `cover_timestamp`** set to the same value (e.g., `3000`) for consistent covers across platforms.
+
 ## Required Fields (All Endpoints)
 
 | Field | Type | Description |
@@ -74,8 +81,13 @@ Default platforms: `instagram`, `threads`, `tiktok`, `facebook`, `youtube`
 | Field | Type | Description |
 |-------|------|-------------|
 | `video` | file | Video file — use `@filename.mp4` in curl |
-| `media_type` | string | Instagram: `FEED`, `REELS`, `STORIES` |
-| `thumbnail` | file | **RECOMMENDED** — Cover image for video grid/feed. Use `@thumbnail.png` in curl. Without this, platforms show a blank/black frame as the video preview. |
+| `media_type` | string | Instagram: `REELS`, `STORIES` |
+| `thumbnail` | file | **YouTube only** — Custom thumbnail image (JPG/PNG, max 2 MB). Use `@thumbnail.png` in curl. Does NOT affect Instagram. |
+| `thumb_offset` | string | **Instagram REELS cover** — Milliseconds into the video to use as cover frame (e.g., `3000` = 3s). **ALWAYS include this** to prevent blank/black grid previews. |
+| `cover_url` | string | **Instagram REELS cover (alternative)** — Public URL to a custom cover image. Use this instead of `thumb_offset` if you have a hosted image. |
+| `share_to_feed` | boolean | Instagram: whether Reel also appears in the main feed grid. Default `true`. |
+| `cover_timestamp` | integer | **TikTok cover** — Milliseconds into the video to use as TikTok cover frame (e.g., `3000` = 3s). Default is 1000ms. **ALWAYS set to match `thumb_offset`** so all platforms use the same cover frame. |
+| `thumbnail_url` | string | **Facebook/YouTube cover (alternative)** — Public URL to a cover image. Facebook: only works with `facebook_media_type=VIDEO` (not REELS). YouTube: alternative to `thumbnail` file upload. |
 
 ## Platform-Specific Text Fields
 
@@ -110,7 +122,7 @@ disable_comment=false
 brand_content_toggle=false
 brand_organic_toggle=false
 auto_add_music=false
-photo_cover_index=0
+cover_timestamp=3000              # ms into video for cover frame (match thumb_offset)
 ```
 
 ### Facebook
@@ -160,6 +172,9 @@ RESPONSE=$(curl -s \
   -F 'async_upload=true' \
   -F 'video=@video-final.mp4' \
   -F 'thumbnail=@thumbnail.png' \
+  -F 'thumb_offset=3000' \
+  -F 'cover_timestamp=3000' \
+  -F 'share_to_feed=true' \
   -F 'media_type=REELS' \
   -F "title=YouTube Video Title" \
   -F 'instagram_title=Instagram caption with #hashtags' \
@@ -316,7 +331,7 @@ After every successful publish (or when generating a publish script), **ALWAYS s
 
 1. Identify content type: image, carousel, or video
 2. Choose the correct endpoint (`/upload` for video, `/upload_photos` for images)
-3. **For videos**: Check if a `thumbnail.png` exists in the same folder as the video. If found, include `-F 'thumbnail=@thumbnail.png'` in the upload. This is critical — without a thumbnail, platforms show blank/black frames in the feed grid.
+3. **For videos**: Include `-F 'thumb_offset=3000'` for Instagram Reel cover (3s = hook scene visible). Also check if `thumbnail.png` exists — if found, include `-F 'thumbnail=@thumbnail.png'` for YouTube cover. These are DIFFERENT fields: `thumb_offset` → Instagram, `thumbnail` → YouTube.
 4. Write post text optimized for each platform — **check character limits** (Facebook 255, TikTok 150)
 5. **ALWAYS include the generic `title` field** (YouTube requires it)
 6. Generate a curl command or shell script with all required fields

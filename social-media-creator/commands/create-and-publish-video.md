@@ -140,34 +140,43 @@ Follow Steps 0–6 from the `create-video-post` command exactly:
    - `media_type=IMAGE` (the API handles video files too)
    - Platform-specific text from the captions file
    - All required settings (privacy_level, post_mode, etc.)
-4. For video posts, the curl command:
+4. For video posts, use the `/api/upload` endpoint (NOT `/upload_photos`):
    ```bash
    curl \
      -H "Authorization: Apikey $API_KEY" \
      -F "user=$USER" \
-     -F 'title=Main post text' \
+     -F "title=YouTube Video Title" \
      -F 'platform[]=instagram' \
      -F 'platform[]=threads' \
      -F 'platform[]=tiktok' \
+     -F 'platform[]=facebook' \
+     -F 'platform[]=youtube' \
      -F 'async_upload=true' \
-     -F 'photos[]=@{slug}-final.mp4' \
+     -F 'video=@{slug}-final.mp4' \
      -F 'thumbnail=@thumbnail.png' \
+     -F 'thumb_offset=3000' \
+     -F 'cover_timestamp=3000' \
+     -F 'share_to_feed=true' \
+     -F 'media_type=REELS' \
      -F 'instagram_title=Instagram caption with #hashtags' \
-     -F 'media_type=IMAGE' \
+     -F 'tiktok_title=Short TikTok hook' \
+     -F 'facebook_title=Facebook text (max 255 chars!)' \
+     -F 'facebook_media_type=REELS' \
+     -F 'youtube_title=YouTube Video Title' \
+     -F 'youtube_description=Full YouTube description' \
+     -F 'threads_title=Short hook' \
      -F 'privacy_level=PUBLIC_TO_EVERYONE' \
+     -F 'post_mode=DIRECT_POST' \
      -F 'disable_comment=false' \
      -F 'brand_content_toggle=false' \
      -F 'brand_organic_toggle=false' \
-     -F 'tiktok_title=Short TikTok hook' \
-     -F 'post_mode=DIRECT_POST' \
      -F 'auto_add_music=false' \
-     -F 'photo_cover_index=0' \
-     -F 'tiktok_description=Full TikTok description' \
-     -F 'threads_long_text_as_post=false' \
-     -F 'threads_title=Short hook' \
-     -F 'threads_description=Full threads text' \
-     -X POST "https://api.upload-post.com/api/upload_photos"
+     -F 'privacyStatus=PUBLIC' \
+     -F 'categoryId=22' \
+     -F 'selfDeclaredMadeForKids=false' \
+     -X POST "https://api.upload-post.com/api/upload"
    ```
+   **IMPORTANT**: `thumbnail` = YouTube cover (file), `thumb_offset` = Instagram Reel cover (ms). Both are needed.
 5. If the API is not reachable from the sandbox, save the curl command as `{slug}-publish.sh` in the post folder for the user to run locally
 6. Report success or provide the script file
 
