@@ -139,7 +139,8 @@ For EACH lesson, follow the full video creation pipeline (from create-video-post
      ```
    - If any check **FAILs** — fix and re-validate
    - **Only after this lesson passes** → proceed to next lesson
-10. **Generate captions** for each platform
+10. **Generate thumbnail** — screenshot HTML at 3s (Scene 1 hook fully visible), save as `thumbnail.png`
+11. **Generate captions** for each platform
 
 ### Typography Rules (same as create-video-post)
 - Body/detail: `clamp(1.2rem, 3.2vh, 3.5rem)` minimum
