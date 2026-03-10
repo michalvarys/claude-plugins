@@ -167,6 +167,19 @@ trans = call_en('slide.slide', 'get_field_translations', [[sid], 'html_content']
 # Vraci: [[{lang, source, value}, ...], {translation_type}]
 ```
 
+### 18. Cover image kurzu (KRITICKE)
+Thumbnail na hlavni strance /slides se bere ze `slide.channel.image_1920`, NE
+z jednotlivych slide.slide! Kazdy kurz MUSI mit unikatni cover image.
+Generuj pres Gemini Flash (`gemini-2.5-flash-image`) — viz skill lesson-thumbnail.
+```python
+# SPRAVNE: cover na channel
+call_en('slide.channel', 'write', [[channel_id], {'image_1920': image_b64}])
+# NENI VIDET na /slides: thumbnail na slide
+call_en('slide.slide', 'write', [[slide_id], {'image_1920': image_b64}])
+```
+Model `gemini-2.0-flash-exp-image-generation` uz NEFUNGUJE (404).
+Pouzij `gemini-2.5-flash-image` z balicku `google-genai` (NE google-generativeai).
+
 ## Workflow
 
 ### Krok 1: Analyza zadani
