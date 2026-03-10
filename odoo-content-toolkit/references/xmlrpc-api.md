@@ -6,17 +6,22 @@
 import xmlrpc.client
 import os
 
-ODOO_URL = os.environ.get('ODOO_URL', 'https://michalvarys.eu')
+ODOO_URL = os.environ.get('ODOO_URL', 'https://www.michalvarys.eu')
 ODOO_DB = os.environ.get('ODOO_DB', 'varyshop')
 ODOO_API_KEY = os.environ.get('ODOO_API_KEY', '')
+ODOO_LOGIN = os.environ.get('ODOO_LOGIN', 'info@varyshop.eu')
 
 common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
-models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
+models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object', allow_none=True)
 
-ODOO_UID = common.authenticate(ODOO_DB, '', ODOO_API_KEY, {})
+# KRITICKE: authenticate VYZADUJE login parametr (email), ne prazdny string
+ODOO_UID = common.authenticate(ODOO_DB, ODOO_LOGIN, ODOO_API_KEY, {})
 if not ODOO_UID:
-    raise Exception("Authentication failed — check ODOO_API_KEY and ODOO_DB")
+    raise Exception("Authentication failed — check ODOO_LOGIN, ODOO_API_KEY and ODOO_DB")
 ```
+
+**POZOR:** Druhy parametr `authenticate()` MUSI byt login (email), ne prazdny string.
+Bez loginu vraci `False` i s platnym API klicem.
 
 ## Shorthand
 
@@ -470,6 +475,7 @@ NIKDY nepouzivej *args/**kwargs — zpusobi TypeError s context parametrem.
 ### Ceske preklady
 - context jde do kwargs dict, NE jako Python keyword
 - Funguje pro vsechny modely: slide.slide, slide.question, slide.answer
+- Cesky text MUSI mit diakritiku (hacky, carky, krouzek) — VZDY
 
 ### HTML obsah clanku
 - VZDY obal: section.s_text_block > container > row > col-lg-12
@@ -479,3 +485,124 @@ NIKDY nepouzivej *args/**kwargs — zpusobi TypeError s context parametrem.
 - Smazani: call('slide.question', 'unlink', [ids]) — kaskadove maze odpovedi
 - Tvorba: zvlast slide.question create + slide.answer create
 - Preklady: call_cs pro question i answer
+- KAZDA otazka MUSI mit alespon 1 spravnou (is_correct=True) a 1 nespravnou odpoved
+
+### Screenshoty a obrazky jako ir.attachment
+
+```python
+import base64
+
+# Upload obrazku
+with open('screenshot.png', 'rb') as f:
+    data = base64.b64encode(f.read()).decode()
+
+att_id = call('ir.attachment', 'create', [{
+    'name': 'course-screenshot.png',
+    'type': 'binary',
+    'datas': data,
+    'res_model': 'slide.slide',
+    'public': True,
+}])
+img_url = f'/web/image/{att_id}'
+# Pouzij v HTML: <img src="/web/image/{att_id}" alt="Popis" loading="lazy"/>
+```
+
+---
+
+## PREKLADY html_content — KRITICKE (xml_translate)
+
+### Problem
+Pole `html_content` na `slide.slide` pouziva `xml_translate`, coz znamena ze preklady
+funguji na urovni TEXTOVYCH UZLU, ne celych poli. Pokud zavolate `write` s cs_CZ
+kontextem a jinym HTML, PREPISE se zakladni (EN) HTML — NE prida preklad!
+
+### SPATNY pristup (nepouzivat!)
+```python
+# TOTO NEFUNGUJE — CS write prepise EN zaklad!
+call_en('slide.slide', 'write', [[sid], {'html_content': en_html}])
+call_cs('slide.slide', 'write', [[sid], {'html_content': cs_html}])
+# Vysledek: OBE jazyky ukazuji cs_html (posledni zapis)
+```
+
+### SPRAVNY pristup pro html_content preklady
+```python
+from html.parser import HTMLParser
+
+class TextExtractor(HTMLParser):
+    """Extrahuje textove uzly z HTML."""
+    def __init__(self):
+        super().__init__()
+        self.texts = []
+        self._skip = {'script', 'style', 'code', 'pre'}
+        self._in_skip = 0
+    def handle_starttag(self, tag, attrs):
+        if tag in self._skip: self._in_skip += 1
+    def handle_endtag(self, tag):
+        if tag in self._skip and self._in_skip > 0: self._in_skip -= 1
+    def handle_data(self, data):
+        t = data.strip()
+        if t and self._in_skip == 0: self.texts.append(t)
+
+def extract_texts(html):
+    p = TextExtractor()
+    p.feed(html)
+    return p.texts
+
+# 1. Zapis EN HTML jako zaklad (en_US kontext)
+call_en('slide.slide', 'write', [[slide_id], {'html_content': en_html}])
+
+# 2. Extrahuj textove uzly z obou verzi
+en_texts = extract_texts(en_html)
+cs_texts = extract_texts(cs_html)
+
+# 3. Vytvor mapovani {EN_text: CS_text} dle pozice
+mapping = {}
+for i in range(min(len(en_texts), len(cs_texts))):
+    if en_texts[i] != cs_texts[i]:
+        mapping[en_texts[i]] = cs_texts[i]
+
+# 4. Aplikuj CS preklady pres update_field_translations
+call_en('slide.slide', 'update_field_translations',
+    [[slide_id], 'html_content', {'cs_CZ': mapping}])
+```
+
+### Proc to funguje
+- `update_field_translations` nastavuje preklady pro jednotlive textove uzly
+- Odoo pri cteni v cs_CZ nahradi textove uzly prelozenymy verzemi
+- HTML struktura (tagy) zustava stejna, meni se jen text uvnitr
+
+### Typy poli a jejich prekladovy mechanismus
+
+| Typ pole | translate | Jak prekladat |
+|----------|-----------|---------------|
+| name, description, meta_* | `translate=True` | Obycejny `write` s context={'lang': 'cs_CZ'} |
+| html_content | `translate=xml_translate` | `update_field_translations` s per-term mapovanim |
+| content (blog.post) | `translate=True` | Obycejny `write` s context={'lang': 'cs_CZ'} |
+
+### Overeni prekladu
+```python
+# Kontrola zda preklady funguji
+trans = call_en('slide.slide', 'get_field_translations', [[slide_id], 'html_content'])
+# Vraci: [[{lang, source, value}, ...], {translation_type, translation_show_source}]
+```
+
+### Pridani obsahu (screenshoty, CTA bloky) s preklady
+Pokud pridavate novy HTML obsah (napr. screenshoty) do existujiciho slidu:
+```python
+# 1. Prectete soucasny EN HTML
+en_html = call_en('slide.slide', 'read', [[sid], ['html_content']])[0]['html_content']
+
+# 2. Pridejte novy obsah
+new_html = en_html.replace('</section>', inject_html + '</section>', 1)
+
+# 3. Zapiste zpet do EN zakladu
+call_en('slide.slide', 'write', [[sid], {'html_content': new_html}])
+
+# 4. Pridejte CS preklady pro NOVE textove uzly
+call_en('slide.slide', 'update_field_translations',
+    [[sid], 'html_content', {'cs_CZ': {
+        'English caption': 'Český popisek',
+        'Tip:': 'Tip:',
+        'English tip text': 'Český text tipu',
+    }}])
+```
