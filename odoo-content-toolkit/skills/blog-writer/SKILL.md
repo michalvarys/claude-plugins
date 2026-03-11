@@ -127,26 +127,18 @@ Napíš Python skript a spusť přes osascript (VM Bash nefunguje kvůli ENOSPC)
 import xmlrpc.client, os, json
 
 # --- Connection ---
-ODOO_URL = os.environ.get('ODOO_URL', 'https://michalvarys.eu')
+ODOO_URL = os.environ.get('ODOO_URL', 'https://www.michalvarys.eu')  # VZDY s www!
 ODOO_DB = os.environ.get('ODOO_DB', 'varyshop')
 ODOO_API_KEY = os.environ.get('ODOO_API_KEY', '')
+ODOO_LOGIN = os.environ.get('ODOO_LOGIN', 'info@varyshop.eu')
 
 common = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/common')
-models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
+models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object', allow_none=True)
 
-UID = common.authenticate(ODOO_DB, '', ODOO_API_KEY, {})
+# KRITICKE: authenticate VYZADUJE login (email), NE prazdny string!
+UID = common.authenticate(ODOO_DB, ODOO_LOGIN, ODOO_API_KEY, {})
 if not UID:
-    # Fallback — vyzkoušej známé UID
-    for test_uid in [int(os.environ.get('ODOO_UID', 2)), 2]:
-        try:
-            models.execute_kw(ODOO_DB, test_uid, ODOO_API_KEY,
-                              'res.partner', 'search_count', [[]])
-            UID = test_uid
-            break
-        except Exception:
-            continue
-    if not UID:
-        raise Exception("Authentication failed")
+    raise Exception("Authentication failed — check ODOO_LOGIN, ODOO_API_KEY and ODOO_DB")
 
 # --- Najdi nebo vytvoř blog ---
 blogs = models.execute_kw(ODOO_DB, UID, ODOO_API_KEY, 'blog.blog', 'search_read', [
@@ -218,9 +210,9 @@ Vrať uživateli:
 Kvůli ENOSPC na VM použij `mcp__Control_your_Mac__osascript` pro spuštění Python skriptu:
 
 ```
-do shell script "cd /Users/michalvarys/projekty/sidonio && export $(grep -v '^#' .env | xargs) && python3 /Users/michalvarys/projekty/sidonio/script_name.py"
+do shell script "cd /Users/michalvarys/projekty/startbusiness && export $(grep -v '^#' .env | xargs) && python3 script_name.py"
 ```
 
 Nebo zapiš skript do souboru a spusť:
-1. Write tool → `/sessions/brave-focused-clarke/mnt/sidonio/script_name.py`
-2. osascript → spusť skript z Mac cesty `/Users/michalvarys/projekty/sidonio/script_name.py`
+1. Write tool → skript do pracovního adresáře kurzu/blogu
+2. osascript → spusť skript s env proměnnými z `/Users/michalvarys/projekty/startbusiness/.env`

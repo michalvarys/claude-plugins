@@ -477,6 +477,29 @@ NIKDY nepouzivej *args/**kwargs — zpusobi TypeError s context parametrem.
 - Funguje pro vsechny modely: slide.slide, slide.question, slide.answer
 - Cesky text MUSI mit diakritiku (hacky, carky, krouzek) — VZDY
 
+### HTML entity v textovych polich (KRITICKE)
+Textova pole (name, website_meta_title, website_meta_description) jsou PLAIN TEXT.
+Odoo je NEDEKODUJE jako HTML — entity `&#225;` se zobrazi doslova jako `&#225;`
+v sidebar navigaci, breadcrumbs, titulcich stranek.
+
+**Pravidlo:** Vsechna ne-html pole MUSI obsahovat primo UTF-8 znaky.
+JSON soubory generuj s `json.dump(data, f, ensure_ascii=False)`.
+Pred uploadem do Odoo zkontroluj ze ne-html pole neobsahuji `&#` retezce.
+
+### Aktualizace existujicich zaznamu
+Pro update pouzij `write` (NE `create`). Nejdriv zjisti IDs pres `search_read`:
+```python
+# Zjisti existujici slidy
+slides = call('slide.slide', 'search_read',
+    [[['channel_id', '=', channel_id]]],
+    {'fields': ['id', 'name', 'sequence', 'is_category'], 'order': 'sequence asc'})
+
+# Update EN
+call_en('slide.slide', 'write', [[slide_id], {'name': 'New Name', ...}])
+# Update CS
+call_cs('slide.slide', 'write', [[slide_id], {'name': 'Nový název', ...}])
+```
+
 ### HTML obsah clanku
 - VZDY obal: section.s_text_block > container > row > col-lg-12
 - Bez wrapperu se obsah nezobrazuje spravne na webu

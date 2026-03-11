@@ -27,3 +27,5 @@ Steps:
 7. Execute script via osascript (VM Bash has ENOSPC)
 8. Return course summary with Odoo admin link
 9. NEVER auto-publish — admin reviews and publishes manually
+10. IMPORTANT: ensure_ascii=False in json.dump — no HTML entities in text fields!
+11. To UPDATE an existing course instead, use /update-course command

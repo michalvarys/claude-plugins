@@ -75,6 +75,37 @@ call_cs('slide.slide', 'write', [[sid], {'name': 'Český název'}])
 Pole `html_content` pouziva `xml_translate` — preklady funguji na urovni
 TEXTOVYCH UZLU, ne celych poli!
 
+**NEJDULEZITEJSI PRAVIDLO: CS HTML MUSI mit IDENTICKOU HTML strukturu jako EN!**
+Pokud EN ma tabulku `<table>` s 7 radky, CS MUSI mit stejnou tabulku s 7 radky.
+Pokud EN ma 5 card divu, CS MUSI mit 5 card divu. Jediny rozdil je TEXT uvnitr tagu.
+Neshodna struktura zpusobi ze `update_field_translations` namapuje texty na spatne
+pozice a ROZBIJE vizualni layout (text pretece do jinych sekci, tabulky zmizi).
+
+**Overeni struktury pred uploadem:**
+```python
+from html.parser import HTMLParser
+import re
+
+def count_tags(html):
+    tags = {}
+    for m in re.finditer(r'<(\w+)[\s>]', html):
+        tag = m.group(1).lower()
+        tags[tag] = tags.get(tag, 0) + 1
+    return tags
+
+en_tags = count_tags(en_html)
+cs_tags = count_tags(cs_html)
+for tag in set(en_tags) | set(cs_tags):
+    if en_tags.get(tag, 0) != cs_tags.get(tag, 0):
+        raise ValueError(f"Tag mismatch: <{tag}> EN={en_tags.get(tag,0)} CS={cs_tags.get(tag,0)}")
+```
+
+**Jak generovat CS HTML spravne:**
+1. Vezmi EN HTML jako sablonu (KOPIRUJ cely soubor)
+2. Preloz POUZE textovy obsah uvnitr tagu do cestiny
+3. NEMEN strukturu — zadne pridavani/odebirani tagu, tabulek, divu
+4. Overeni: pocet textovych uzlu v CS == pocet textovych uzlu v EN
+
 **SPATNE** (nepouzivat — CS prepise EN zaklad!):
 ```python
 call_en('slide.slide', 'write', [[sid], {'html_content': en_html}])
@@ -179,6 +210,90 @@ call_en('slide.slide', 'write', [[slide_id], {'image_1920': image_b64}])
 ```
 Model `gemini-2.0-flash-exp-image-generation` uz NEFUNGUJE (404).
 Pouzij `gemini-2.5-flash-image` z balicku `google-genai` (NE google-generativeai).
+
+### 20. HTML entity v textovych polich (KRITICKE)
+Textova pole (name, mt, md, description) jsou PLAIN TEXT — Odoo je NEDEKODUJE
+jako HTML. HTML entity (`&#225;`, `&#233;`, `&#8212;`) se zobrazi DOSLOVA
+jako `&#225;` v sidebar, breadcrumbs a titulcich.
+
+**SPATNE** (zpusobi `b&#225;ze` misto `báze`):
+```python
+data = {"name": "Znalostní b&#225;ze a syst&#233;mov&#233; prompty"}
+```
+
+**SPRAVNE** (vzdy pouzij primo UTF-8 znaky):
+```python
+data = {"name": "Znalostní báze a systémové prompty"}
+```
+
+**Oprava existujicich dat** — rekurzivni dekodovani JSON:
+```python
+import html, json
+
+def decode_fields(obj):
+    """Dekoduj HTML entity ve vsech ne-html polich."""
+    if isinstance(obj, dict):
+        for key, val in obj.items():
+            if key == 'html':
+                continue  # html pole nechej — browser je dekoduje sam
+            if isinstance(val, str):
+                obj[key] = html.unescape(val)
+            elif isinstance(val, (dict, list)):
+                decode_fields(val)
+    elif isinstance(obj, list):
+        for item in obj:
+            decode_fields(item)
+
+with open('course_data.json', 'r') as f:
+    data = json.load(f)
+decode_fields(data)
+with open('course_data.json', 'w', encoding='utf-8') as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+```
+
+**Pravidlo:** Pred kazdym nahranim do Odoo zkontroluj ze JSON data
+neobsahuji `&#` v polich name, mt, md, description. Jedine pole `html`
+muze obsahovat entity (browser je dekoduje).
+
+### 21. Aktualizace existujiciho kurzu (update workflow)
+Pro aktualizaci jiz existujiciho kurzu (napr. oprava prekladu, zmena CTA):
+
+1. **Napis update skript** (NE create) — pouzij `write` misto `create`
+2. **Mapuj klice na Odoo ID** — zjisti existujici slide IDs pres search:
+```python
+slides = call('slide.slide', 'search_read',
+    [[['channel_id', '=', channel_id]]],
+    {'fields': ['id', 'name', 'sequence', 'is_category'], 'order': 'sequence asc'})
+```
+3. **Aktualizuj EN i CS** — write s en_US kontextem, pak write s cs_CZ kontextem
+4. **HTML content** — pouzij `update_field_translations` (viz sekce 8)
+5. **Kvizy** — search `slide.question` a `slide.answer` podle slide_id, pak write
+
+**Sablona update skriptu:**
+```python
+# Mapping: JSON key -> Odoo ID (zjisti pres search_read vyse)
+SLIDE_MAP = {'1.1': 206, '1.2': 207, 'q1': 208, ...}
+SECTION_MAP = {'s1': 201, 's2': 202, ...}
+
+for sl in data['slides']:
+    slide_id = SLIDE_MAP[sl['key']]
+    # EN fields
+    call_en('slide.slide', 'write', [[slide_id], {
+        'name': sl['name'],
+        'website_meta_title': sl.get('mt', ''),
+        'website_meta_description': sl.get('md', ''),
+    }])
+    # CS fields
+    if 'cs' in sl:
+        cs_vals = {}
+        if 'name' in sl['cs']: cs_vals['name'] = sl['cs']['name']
+        if 'mt' in sl['cs']: cs_vals['website_meta_title'] = sl['cs']['mt']
+        if 'md' in sl['cs']: cs_vals['website_meta_description'] = sl['cs']['md']
+        call_cs('slide.slide', 'write', [[slide_id], cs_vals])
+    # HTML content + translations
+    if sl.get('html') and sl.get('cs', {}).get('html'):
+        apply_html_translations(slide_id, en_html, cs_html)
+```
 
 ### 19. Visual HTML Design System (POVINNE)
 
@@ -516,3 +631,12 @@ Sections: s1=98, s2=103, s3=108
 Intros: 1.0=99, 2.0=104, 3.0=109
 Slides: 1.1=100, 1.2=101, 2.1=105, 2.2=106, 3.1=110, 3.2=111
 Quizzes: q1=102, q2=107, q3=112
+
+## Slide ID Reference (Channel 10 - Claude AI Complete Guide)
+
+Channel: 10
+Sections: s1=201, s2=202, s3=203, s4=204, s5=205
+Slides: 1.1=206, 1.2=207, 2.1=209, 2.2=210, 2.3=211,
+        3.1=213, 3.2=214, 3.3=215, 4.1=217, 4.2=218, 4.3=219,
+        5.1=221, 5.2=222, 5.3=223
+Quizzes: q1=208, q2=212, q3=216, q4=220, q5=224

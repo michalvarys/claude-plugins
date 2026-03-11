@@ -10,11 +10,12 @@ Plugin vytváří obsah pro Odoo website — blog články optimalizované pro S
 
 ### Environment Variables (required)
 
-- `ODOO_URL`: Odoo instance URL (default: `https://michalvarys.eu`)
+- `ODOO_URL`: Odoo instance URL (default: `https://www.michalvarys.eu` — VŽDY s www!)
 - `ODOO_DB`: Database name (default: `varyshop`)
 - `ODOO_API_KEY`: API key from Odoo user profile
+- `ODOO_LOGIN`: Login email (default: `info@varyshop.eu` — POVINNÉ pro authenticate!)
 
-UID is automatically determined via `common.authenticate()`.
+UID is automatically determined via `common.authenticate(DB, LOGIN, API_KEY, {})`.
 
 ### Požadované Odoo moduly
 
@@ -53,6 +54,7 @@ Kompletní e-learning kurzy s lekcemi, kvízy a videi.
 - `/write-blog <topic>` — Napíše SEO blog článek a publikuje do Odoo
 - `/deep-research <topic>` — Hloubkový research s strukturovaným výstupem
 - `/create-course <topic>` — Vytvoří e-learning kurz s lekcemi a kvízy
+- `/update-course <channel_id>` — Aktualizuje existující kurz (překlady, obsah, CTA, oprava entit)
 
 ## Příklady použití
 
@@ -63,6 +65,8 @@ udělej deep research na téma food safety v restauracích
 vytvoř e-learning kurz o hygieně v gastro provozu
 napiš how-to článek o přípravě pizzového těsta
 vytvoř dokumentaci o našich produktech jako kurz
+aktualizuj kurz 10 — oprav české překlady
+update course 10 --fix-entities
 ```
 
 ## Odoo modely
