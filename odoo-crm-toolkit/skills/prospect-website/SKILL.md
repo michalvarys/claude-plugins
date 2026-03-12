@@ -156,6 +156,59 @@ lead_id = models.execute_kw(DB, UID, KEY, 'crm.lead', 'create', [{
 }])
 ```
 
+### Step 3.5: Deep Research (MANDATORY before creating web preview)
+
+Before creating the web page, perform thorough research to gather ALL personalization data. This step is CRITICAL for conversion — a generic page won't sell.
+
+**Research Sources (check ALL of them):**
+
+1. **apetee.com** — primary source for Czech restaurants
+   - URL patterns: `https://www.apetee.com/{Name}-Karlovy-Vary` or `https://www.apetee.com/Restaurace-{Name}-Karlovy-Vary`
+   - Extract: photos (both `/img/` and `/storage/` URL formats), address, phone, hours, description, cuisine type, amenities
+
+2. **restaurantguru.com** — reviews, photos, menu
+   - Search: `"{company_name}" Karlovy Vary site:restaurantguru.com`
+   - Extract: real customer reviews (translate to Czech if needed), food photos, menu photos
+
+3. **Google search** — general info, social profiles
+   - Search: `"{company_name}" Karlovy Vary`
+   - Search: `"{company_name}" Karlovy Vary facebook`
+   - Search: `"{company_name}" Karlovy Vary instagram`
+   - Search: `"{company_name}" Karlovy Vary recenze`
+
+4. **Company's own website** — if they have one, analyze it for content to reuse
+   - Menu/services, about text, contact info, photos
+   - Note: this is also useful for identifying weaknesses (selling arguments)
+
+5. **TripAdvisor / Google Reviews** — real reviews to use as social proof
+
+**Data to collect for EACH restaurant/business:**
+
+| Data | Required | Source Priority |
+|------|----------|----------------|
+| Real photos (min 4) | YES | apetee > restaurantguru > own site > Google |
+| Address | YES | apetee > Google |
+| Phone | YES | apetee > own site > Google |
+| Opening hours | YES | apetee > own site |
+| Description/about | YES | apetee > own site (rewrite in engaging tone) |
+| Cuisine type | YES | apetee > menu analysis |
+| Menu items (min 4) | YES | restaurantguru > own site > estimate from cuisine |
+| Real reviews (min 3) | YES | Google > TripAdvisor > restaurantguru |
+| Facebook URL | NICE | Google search |
+| Instagram URL | NICE | Google search |
+| Website URL | NICE | apetee > Google |
+| Email | NICE | own site > apetee |
+| Amenities (WiFi, parking, garden...) | NICE | apetee |
+
+**Rules for personalization:**
+- Menu items MUST match the actual cuisine type (don't put pizza in a Czech pub)
+- Reviews MUST sound authentic and mention specific dishes/features of that restaurant
+- Description MUST be unique and highlight what makes THIS place special
+- Photo captions are NOT used (photos speak for themselves)
+- If real menu prices aren't available, estimate realistic prices for the cuisine type and market
+- Each design MUST be visually unique — different color palette, typography, layout variations
+- Use gradient overlays on hero images that match the restaurant's mood
+
 ### Step 4: Create QWeb Web Preview Page
 
 Use the `odoo-qweb-page` skill patterns from `odoo-dev-toolkit` to create a professional landing page.
@@ -165,22 +218,34 @@ Use the `odoo-qweb-page` skill patterns from `odoo-dev-toolkit` to create a prof
 - Be published (`website_published: True`)
 - NOT be in menu (don't create `website.menu` entry)
 - Match the company's industry and style (see Industry-Specific Design below)
-- Include sections: Hero, Photos, Stats, Menu/Services, Why Us, Pricing, Contact/CTA
+- Include ALL sections: Hero (with gradient overlay), About, Photo Gallery (2x2 grid), Sample Menu, Reviews, Contact (with map + social links), CTA Pricing
 - Have full SEO meta tags and JSON-LD
 - Be visually impressive — this IS the sales pitch
 - Contain REAL photos of the business (see Photo Sourcing below)
 - Use scroll animations (IntersectionObserver + fade-in classes)
 - Hide Odoo header/footer via CSS (`header.o_header, footer.o_footer { display:none !important; }`)
+- Include embedded Google Maps iframe for the address
+- Show real social media links (Facebook, Instagram) if available
+- Display sample menu items with realistic prices
+- Show customer reviews/testimonials
 
 #### Industry-Specific Design Guidelines
 
 The web preview style MUST match the target company's industry. Analyze the company type and select appropriate design:
 
 **Restaurants / Cafes / Bars:**
-- Colors: Warm cream (#FDF8F0), warm beige (#F5EDE0), gold (#B8860B), dark brown (#3D2B1F)
-- Fonts: Playfair Display (headings) + DM Sans (body)
-- Sections: Hero with interior photo, Food gallery, Stats, Menu preview with prices, Features, Pricing, Contact
-- Style: Elegant, warm, inviting, light backgrounds
+- Colors: UNIQUE per restaurant — choose from: warm earth tones, deep wine, Mediterranean terracotta, modern sage, bold amber, elegant navy, rich burgundy. NEVER reuse the same palette across restaurants.
+- Fonts: Mix from: Playfair Display, DM Serif Display, Libre Baskerville, Merriweather, Oswald (display) + Inter, DM Sans, Source Sans 3, Nunito Sans, Barlow (body). Each restaurant gets a unique pair.
+- Required sections (in order):
+  1. **Hero** — full-screen with real photo, gradient overlay matching brand colors, restaurant name, cuisine badge, CTA button, scroll indicator
+  2. **About** — split layout (text + photo), address with map pin icon, description highlighting unique selling points
+  3. **Gallery** — 2x2 symmetric grid, real photos, NO text captions (photos speak for themselves), hover zoom effect
+  4. **Sample Menu** — 4 items minimum, item name + description + price, dotted line separator, note about seasonal changes
+  5. **Reviews** — 3 reviews in grid, star ratings (SVG), quoted text, author name, must feel authentic and mention specific dishes
+  6. **Contact** — split layout: left = address/phone/hours/email/social links, right = embedded Google Maps iframe
+  7. **CTA Pricing** — centered card, 890 Kč/měsíc, list of included features (from prospect-offer-details), gradient CTA button
+- Style: Modern, clean, visually unique per restaurant, use gradient overlays, smooth scroll animations
+- NEVER use emoji — only inline SVG icons
 
 **Tech / SaaS / IT:**
 - Colors: Dark (#0a0a0f), electric blue (#3B82F6), accent (#60a5fa), text-muted (#a0aec0)
