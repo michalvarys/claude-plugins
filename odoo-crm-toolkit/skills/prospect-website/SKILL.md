@@ -300,7 +300,7 @@ Use found image URLs directly in the template (hotlinking). Place photos in:
 - Photo gallery grids (food/products/services)
 - Section backgrounds with overlay
 
-If no real photos found, use generic industry-appropriate placeholders and note this in the output summary.
+If no real photos found, use **Unsplash mockup photos** matching the industry (hotel rooms, restaurant interiors, bar atmosphere, outdoor terraces, building exteriors). Unsplash photos are free for commercial use. Use direct image URLs: `https://images.unsplash.com/photo-{ID}?w=800&q=80`. Note the use of mockups in the output summary.
 
 **Create via API (two-step):**
 
@@ -506,3 +506,37 @@ models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'write', [[sms_mailing_id], {
 7. **All links in email get automatic Odoo tracking** — no manual UTM needed.
 8. **All CTA links on web preview use link.tracker short URLs** — for click tracking under the UTM campaign.
 9. **Same UTM campaign is assigned to web, email, and SMS** — unified analytics.
+
+## Design Rules (CRITICAL)
+
+### Photos are MANDATORY
+Every web preview page MUST contain photos. A page without photos looks empty and unconvincing.
+
+**Photo sourcing priority:**
+1. Real photos from the business (their website uploads, Google Maps, Restaurant Guru, firmy.cz, Facebook)
+2. If real photos are unavailable (JS rendering, no photos online), use **Unsplash mockup photos** matching the industry
+3. Unsplash URL format: `https://images.unsplash.com/photo-{ID}?w=800&q=80`
+
+**Where to place photos:**
+- Hero section: fullscreen background image with dark overlay
+- Pillar/feature cards: photo on top, text below (card pattern)
+- Content sections: large photo alongside text (split layout)
+- Fullscreen photo sections with overlay for atmosphere (e.g. restaurant)
+- Gallery section: grid of 4-6 photos with hover zoom effect
+
+**When using mockups, note it in the output summary** — real photos will replace mockups after client approval.
+
+### Color Palette Must Match Industry
+- **Restaurants / Penziony / Hotely:** ALWAYS use warm, cozy, hospitality-appropriate colors — cream (#FDF8F0), warm beige (#F5EDE0), browns (#5B3A1E, #3D2B1F), gold (#C4943A, #D4A853), dark wood (#1A1510). Use Playfair Display + DM Sans fonts.
+- **NEVER use tech/startup aesthetics** (purple, neon, electric blue, dark futuristic themes) for restaurants, pensions, or hotels. These businesses need warmth, not Silicon Valley vibes.
+
+### Email Preview Text (Preheader)
+Every prospect email MUST include a preview/preheader text that appears in the inbox before opening:
+- Add a hidden div at the top of email HTML: `<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">Preview text here</div>`
+- Also set the `preview` field on mailing.mailing if available
+- Example: "Mrkněte na hotový návrh zdarma — žádný risk, žádné závazky."
+
+### Contact Info in Materials
+- In prospect emails, SMS, and web preview CTA sections, provide ONLY **info@michalvarys.eu** as contact
+- Do NOT include a phone number for callbacks
+- The prospect's own contact info (phone, email) is fine to display on their web preview page
