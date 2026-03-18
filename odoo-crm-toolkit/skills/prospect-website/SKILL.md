@@ -530,11 +530,33 @@ Every web preview page MUST contain photos. A page without photos looks empty an
 - **Restaurants / Penziony / Hotely:** ALWAYS use warm, cozy, hospitality-appropriate colors — cream (#FDF8F0), warm beige (#F5EDE0), browns (#5B3A1E, #3D2B1F), gold (#C4943A, #D4A853), dark wood (#1A1510). Use Playfair Display + DM Sans fonts.
 - **NEVER use tech/startup aesthetics** (purple, neon, electric blue, dark futuristic themes) for restaurants, pensions, or hotels. These businesses need warmth, not Silicon Valley vibes.
 
-### Email Preview Text (Preheader)
-Every prospect email MUST include a preview/preheader text that appears in the inbox before opening:
+### Email Subject Line & Preview Text (CRITICAL for open rates)
+The subject line and preview text are the TWO most important elements — they determine whether the email gets opened or ignored.
+
+**Subject line rules:**
+- MUST be a compelling hook, NOT a description of what was done
+- Use curiosity, specificity, or direct benefit — make them WANT to open it
+- Mention the company name for personalization
+- Keep under 50 characters ideally
+- NEVER use generic subjects like "Připravili jsme pro vás náhled nového webu"
+
+**Good subject examples:**
+- "Váš nový web je hotový — mrkněte, {company_name}"
+- "{company_name}: takhle by mohl vypadat váš web"
+- "Podívejte se, co jsme pro vás připravili"
+- "Bezplatný návrh webu pro {company_name}"
+- "{company_name} — váš web za 5 minut"
+
+**Preview text (preheader) rules:**
 - Add a hidden div at the top of email HTML: `<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">Preview text here</div>`
 - Also set the `preview` field on mailing.mailing if available
-- Example: "Mrkněte na hotový návrh zdarma — žádný risk, žádné závazky."
+- Preview text MUST complement the subject — add detail or urgency that the subject doesn't have
+- It should answer "why should I open this?" if the subject creates curiosity
+
+**Good preview text examples:**
+- "Bez risku a závazků — tady je náhled, jak to může vypadat."
+- "Hotový návrh zdarma. Žádné závazky, žádný háček."
+- "Podívejte se na návrh webu, který jsme vám připravili zdarma."
 
 ### Contact Info in Materials
 - In prospect emails, SMS, and web preview CTA sections, provide ONLY **info@michalvarys.eu** as contact
