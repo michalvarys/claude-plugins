@@ -32,7 +32,7 @@ Then follow these steps in order:
    - Matching the web preview style
    - Explaining what was created
    - Including link to web preview
-   - Pricing: web, server, design, SSL, bezpečnost a údržba od 1 290 Kč/měsíc
+   - Pricing: web, server, design, SSL, bezpečnost a údržba od 890 Kč/měsíc
    - Sender: Michal Varyš <info@michalvarys.eu>
 
 6. **Create SMS mailing** as draft:

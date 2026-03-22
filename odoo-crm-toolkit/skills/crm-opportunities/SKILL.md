@@ -99,7 +99,7 @@ The `description` field supports HTML. For prospect opportunities, structure it 
   <h3>Cenová nabídka</h3>
   <table>
     <tr><td>Web design</td><td>od X Kč</td></tr>
-    <tr><td>Měsíční údržba</td><td>od 1 290 Kč/měsíc</td></tr>
+    <tr><td>Měsíční údržba</td><td>od 890 Kč/měsíc</td></tr>
   </table>
 
   <h3>Další kroky</h3>

@@ -144,7 +144,7 @@ lead_id = models.execute_kw(DB, UID, KEY, 'crm.lead', 'create', [{
         </ul>
 
         <h3>Cenová nabídka</h3>
-        <p>Web, server, design, SSL, bezpečnost a údržba systému od <strong>1 290 Kč/měsíc</strong></p>
+        <p>Web, server, design, SSL, bezpečnost a údržba systému od <strong>890 Kč/měsíc</strong></p>
 
         <h3>Další kroky</h3>
         <ol>
@@ -529,6 +529,45 @@ Every web preview page MUST contain photos. A page without photos looks empty an
 ### Color Palette Must Match Industry
 - **Restaurants / Penziony / Hotely:** ALWAYS use warm, cozy, hospitality-appropriate colors — cream (#FDF8F0), warm beige (#F5EDE0), browns (#5B3A1E, #3D2B1F), gold (#C4943A, #D4A853), dark wood (#1A1510). Use Playfair Display + DM Sans fonts.
 - **NEVER use tech/startup aesthetics** (purple, neon, electric blue, dark futuristic themes) for restaurants, pensions, or hotels. These businesses need warmth, not Silicon Valley vibes.
+
+### Every Page MUST Be Unique and Personalized (CRITICAL)
+NEVER repeat the same section structure across prospect pages. Every web preview must feel custom-made for that specific business.
+
+**What makes each page unique:**
+1. **Lead with the business's strongest asset** — NOT always a generic hero. Examples:
+   - Microbrewery → lead with beer catalog as the hero experience
+   - Wedding venue → lead with a stunning fullscreen wedding gallery
+   - Historic pub from 1731 → lead with the story/timeline, make history the hero
+   - Restaurant with 500+ reviews → lead with social proof, show reviews prominently
+   - Pension with amazing views → lead with a panoramic photo section
+
+2. **Section structure must vary** — NEVER use the same order for every page:
+   - Bad: Hero → About → Gallery → Menu → Rooms → Contact → CTA (every time)
+   - Good: Each page has a unique flow based on what matters most for that business
+
+3. **Layout patterns must differ** — vary between:
+   - Full-width immersive sections vs. contained card layouts
+   - Horizontal timelines vs. vertical storytelling
+   - Grid galleries vs. masonry vs. single large image with text overlay
+   - Pricing tables vs. pricing cards vs. inline pricing
+   - Split layouts (text left/right) vs. centered vs. asymmetric
+
+4. **Interaction patterns should vary:**
+   - Parallax scrolling sections
+   - Sticky navigation for long pages
+   - Tabbed content (e.g., different room types)
+   - Accordion/expandable sections (e.g., FAQ, menu categories)
+   - Counter animations for stats
+   - Before/after slider concept for "old web vs new web"
+
+5. **Think about what this specific business NEEDS to sell:**
+   - Wedding venue → needs a "request a quote" flow, not just a contact form
+   - Hotel with multiple room types → needs a visual room comparison
+   - Restaurant with daily menu → needs a "today's specials" highlight
+   - Historic venue → needs a timeline/story section
+   - Place with great outdoor spaces → needs full-bleed nature/garden photos
+
+**The goal:** A prospect should look at the page and think "this was made specifically for MY business" — not "this is a template with my name on it."
 
 ### Email Subject Line & Preview Text (CRITICAL for open rates)
 The subject line and preview text are the TWO most important elements — they determine whether the email gets opened or ignored.

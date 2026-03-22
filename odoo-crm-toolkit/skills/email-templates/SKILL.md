@@ -114,7 +114,7 @@ The body_html field accepts full HTML. Design emails with inline CSS (email clie
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                                 <tr>
                                     <td style="padding: 8px 0; color: #4a5568; font-size: 14px;">Web, server, design, SSL</td>
-                                    <td align="right" style="padding: 8px 0; color: #1a1a2e; font-weight: 600;">od 1 290 Kč/měsíc</td>
+                                    <td align="right" style="padding: 8px 0; color: #1a1a2e; font-weight: 600;">od 890 Kč/měsíc</td>
                                 </tr>
                             </table>
                         </td>
@@ -127,9 +127,9 @@ The body_html field accepts full HTML. Design emails with inline CSS (email clie
                                 Michal Varyš | <a href="https://michalvarys.eu" style="color: #60a5fa; text-decoration: none;">michalvarys.eu</a>
                             </p>
                             <p style="margin: 0; color: #718096; font-size: 11px;">
-                                <a href="${object.mailing_id.mailing_url_unsubscribe}" style="color: #718096; text-decoration: underline;">Odhlásit se</a>
+                                <a href="https://www.michalvarys.eu/mailing/{MAILING_ID}/unsubscribe" style="color: #718096; text-decoration: underline;">Odhlásit se</a>
                                 &nbsp;|&nbsp;
-                                <a href="${object.mailing_id.mailing_url_view}" style="color: #718096; text-decoration: underline;">Otevřít v prohlížeči</a>
+                                <a href="https://www.michalvarys.eu/mailing/{MAILING_ID}/view" style="color: #718096; text-decoration: underline;">Otevřít v prohlížeči</a>
                             </p>
                         </td>
                     </tr>
@@ -177,12 +177,16 @@ Every content block MUST have class `o_mail_snippet_general` plus a block-type c
 
 ### View Online Block
 
-Add as the FIRST block inside the structure:
+Add as the FIRST block inside the structure.
+
+**CRITICAL: NEVER use `t-att-href` or any QWeb directives in `body_html`/`body_arch`!** QWeb directives only work in `ir.ui.view` templates, NOT in mailing body. Using them causes "Failed to render QWeb template" error and the email won't send.
+
+Use plain `href` with the mailing ID (known after `create()`):
 
 ```html
 <div class="o_snippet_view_in_browser o_mail_snippet_general"
      style="text-align: center; padding: 8px; font-size: 12px;">
-  <a t-att-href="'/mailing/' + str(object.mailing_id.id) + '/view'"
+  <a href="https://www.michalvarys.eu/mailing/{MAILING_ID}/view"
      style="color: #999; text-decoration: underline;">
     Zobrazit v prohlížeči
   </a>
@@ -232,7 +236,7 @@ Add as the FIRST block inside the structure:
     Michal Varyš | michalvarys.eu
   </p>
   <p style="color: #718096; font-size: 11px; margin: 0;">
-    <a t-att-href="'/mailing/' + str(object.mailing_id.id) + '/unsubscribe'"
+    <a href="https://www.michalvarys.eu/mailing/{MAILING_ID}/unsubscribe"
        style="color: #718096; text-decoration: underline;">Odhlásit se</a>
   </p>
 </div>
@@ -302,6 +306,32 @@ mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
 1. Understand the email purpose, audience, and style
 2. Design HTML email following inline CSS and table layout rules
 3. Include proper header, CTA, pricing (if applicable), and footer
-4. Always include "View in browser" and "Unsubscribe" links
-5. Create as draft mailing for manual review
+4. Always include "View in browser" and "Unsubscribe" links with plain `href` (NO `t-att-href`!)
+5. Create as draft mailing for manual review (two-step process — see below)
 6. Return admin link: `{ODOO_URL}/web#id={mailing_id}&model=mailing.mailing&view_type=form`
+
+### Two-Step Mailing Creation (for View/Unsubscribe links)
+
+Since `MAILING_ID` is only known after `create()`, use a two-step process:
+
+```python
+# Step 1: Create mailing with placeholder links
+mailing_id = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'create', [{
+    'subject': 'Subject',
+    'mailing_type': 'mail',
+    'body_html': email_html,  # use {MAILING_ID} placeholder
+    'body_arch': email_html,
+    'state': 'draft',
+    'email_from': 'Michal Varyš <info@michalvarys.eu>',
+    ...
+}])
+
+# Step 2: Replace placeholder with actual ID
+for field in ['body_html', 'body_arch']:
+    content = models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'read',
+        [[mailing_id]], {'fields': [field]})[0][field]
+    if '{MAILING_ID}' in content:
+        content = content.replace('{MAILING_ID}', str(mailing_id))
+        models.execute_kw(DB, UID, KEY, 'mailing.mailing', 'write',
+            [[mailing_id], {field: content}])
+```

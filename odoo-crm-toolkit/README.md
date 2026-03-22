@@ -65,7 +65,7 @@ Everything is created as **draft** — you manually review and send from Odoo ad
 ### Pricing in Templates
 
 Standard pricing used in prospect emails:
-- Web, server, design, SSL, bezpečnost a údržba systému **od 1 290 Kč/měsíc**
+- Web, server, design, SSL, bezpečnost a údržba systému **od 890 Kč/měsíc**
 
 ### Branding
 
