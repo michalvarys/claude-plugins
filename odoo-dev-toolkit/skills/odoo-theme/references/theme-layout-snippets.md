@@ -360,10 +360,23 @@ publicWidget.registry.BrandMobileMenu = publicWidget.Widget.extend({
 - Inherits `website.snippets` with xpath targeting `//snippets[@id='snippet_structure']`
 - Use `position="after"` to add a new group AFTER the default structure snippets
 - Each group needs its own `<snippets id="..." string="...">` wrapper element
+- **Leaf element MUST be `<t t-snippet="..." t-thumbnail="..."/>`** — NOT `<snippet t-snippet="..." string="...">`. The wrong form parses without error but registers the snippet in a broken state where the editor shows "This block cannot be dropped anywhere on the page."
 - `t-snippet` must use full module-qualified ID: `theme_brandname.s_name`
 - Thumbnails are PNG/SVG images (~200×150px) in `static/src/img/icons/` or `static/src/img/snippets/`
 - `snippets_registry.xml` MUST be loaded AFTER individual snippet files in manifest `data:`
 - `string` attribute on `<snippets>` defines the group name in the website editor sidebar
+
+**DO NOT add custom drop-zone rules for plain `<section>` snippets.** Odoo's built-in rule `so_snippet_addition_selector = "section, .parallax, .s_hr"` already handles any `<section>`-based snippet. Adding your own `data-selector` / `data-drop-in` / `data-drop-near` entry will conflict with the built-in rule and the editor will refuse to drop your snippet anywhere:
+
+```xml
+<!-- WRONG — custom drop-zone rule; conflicts with the built-in section rule -->
+<xpath expr="." position="inside">
+    <div data-js="MySnippet"
+         data-selector=".s_arena_hero"
+         data-drop-in="#wrap"
+         data-drop-near="section"/>
+</xpath>
+```
 
 **WRONG xpath patterns (cause silent failure or missing snippets):**
 ```xml
@@ -372,7 +385,13 @@ publicWidget.registry.BrandMobileMenu = publicWidget.Widget.extend({
 
 <!-- WRONG: position="inside" on //snippets without specifying which one -->
 <xpath expr="//snippets" position="inside">
+
+<!-- WRONG: <snippet> wrapper element instead of <t t-snippet> —
+     parses fine but snippet becomes undroppable in the editor -->
+<snippet t-snippet="theme_brandname.s_hero_banner" string="Hero Banner"/>
 ```
+
+**Editor-created pages vs hand-crafted pages.** If your theme scopes all SCSS under a page-level class (e.g. `.my-theme`), snippets dropped into editor-created pages (`+ New → Page`) will render unstyled because those pages use `<div id="wrap" class="oe_structure oe_empty">` with no theme class. Add a body-level scope fallback — see `theme-scss-architecture.md` → "Scoping theme styles for editor-created pages".
 
 ## Page Pattern (views/pages.xml)
 

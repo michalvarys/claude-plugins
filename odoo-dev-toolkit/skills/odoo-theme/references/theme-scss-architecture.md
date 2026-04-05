@@ -478,6 +478,90 @@ Note: the `'url'` key inside `$o-theme-font-configs` is **not** a CSS `url()` �
 
 For self-hosted font files (`.woff2` in `static/src/fonts/`), declare the `@font-face` in a **CSS** file (not SCSS) loaded via `<link>`, or inject the `@font-face` declaration directly into the XML template inside a `<style>` tag in `<head>`.
 
+## Editor-safe CSS properties (CRITICAL)
+
+Odoo 18's website editor loads a set of "option widgets" (`ShadowOption`, `TransitionOption`, filter option, etc.) that **parse the computed styles of the block the user clicked on**. These parsers split CSS values on commas and feed each segment into a unit parser. If ANY segment contains interior commas (e.g. `rgba(0,0,0,.5)`) or the property has multiple comma-separated layers, the parser crashes with:
+
+```
+Error: Cannot convert 'px,' units into 'px' units !
+```
+
+The whole editor then becomes unusable — the user can't select blocks, drag snippets, or save. Worst part: the crash only fires when clicking a *styled* block, so it looks intermittent.
+
+**Rule: never ship comma-separated multi-value CSS on any element that can land inside a snippet drop zone** (i.e. anything inside `#wrap`, `.oe_structure`, or a `<section>` snippet). This includes styles applied via descendant selectors — if `.my-hero .cta` has a multi-value `box-shadow`, clicking `.cta` in the editor crashes.
+
+**Properties that trigger the bug:**
+
+- `box-shadow: 0 0 10px #000, 0 0 20px #f00;` — use ONE shadow + `::before`/`::after` pseudo for additional glow
+- `transition: opacity 0.3s, transform 0.3s;` — use `transition: all 0.3s ease`
+- `filter: drop-shadow(...) blur(...)` with multiple layers — use a single `filter` layer
+- Any property wrapping multiple `rgba()` values separated by commas
+
+**Safe examples:**
+
+```scss
+// ❌ Crashes editor when user clicks a .ea-card
+.ea-card {
+    box-shadow: 0 0 10px rgba(255, 106, 0, 0.4), 0 0 30px rgba(255, 106, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+// ✅ Editor-safe
+.ea-card {
+    box-shadow: 0 0 30px rgba(255, 106, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        box-shadow: 0 0 10px rgba(255, 106, 0, 0.4);
+        pointer-events: none;
+    }
+}
+```
+
+**Debugging recipe:** If the editor throws `Cannot convert 'px,' units into 'px' units` after you click a block, grep your SCSS for `transition:` and `box-shadow:` that contain a comma inside the value. Start with the element class you clicked, then walk up its ancestors. Remember nested selectors — a `transition` declared on a parent applies to the child.
+
+## Scoping theme styles for editor-created pages (CRITICAL)
+
+If you write all theme styles scoped under one class (to avoid polluting Odoo's backend UI):
+
+```scss
+.my-theme {
+    .ea-hero { ... }
+    .ea-card { ... }
+}
+```
+
+...then editor-created pages (`website.new_page`, duplicated pages, pages created via "+New → Page") will render **completely unstyled**. Reason: those pages use `<div id="wrap" class="oe_structure oe_empty">` — no `.my-theme` wrapper — because they don't go through your hand-crafted page templates.
+
+**Fix: dual-scope under the theme class AND a body-level fallback that targets `#wrap`:**
+
+```scss
+// Matches both hand-crafted pages (<div id="wrap" class="my-theme">)
+// and editor-created pages (<div id="wrap" class="oe_structure">).
+// body.my-theme-body guard prevents leaking styles into Odoo's backend admin.
+.my-theme,
+body.my-theme-body #wrap {
+    .ea-hero { ... }
+    .ea-card { ... }
+}
+```
+
+**Add the body class via `website.layout` inherit** (NOT via a wrap-level inherit — `#wrap` is in page templates, not in `website.layout`, so XPath to `//div[@id='wrap']` inside `website.layout` will 500):
+
+```xml
+<template id="my_theme_body_class" inherit_id="website.layout" name="My Theme Body Class">
+    <xpath expr="//body" position="attributes">
+        <attribute name="class" add="my-theme-body" separator=" "/>
+    </xpath>
+</template>
+```
+
+**Why not just drop the scope?** Unscoped theme SCSS (`.ea-hero { ... }` at root) leaks into Odoo's backend admin UI, website editor chrome, and other themes — often breaking them subtly. The body-class guard keeps isolation while covering editor-created pages.
+
 ## SCSS Gotchas
 
 - **`:has()` NOT supported** — Odoo uses libsass compiler which doesn't support `:has()` selector
