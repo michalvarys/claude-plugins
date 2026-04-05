@@ -2,7 +2,6 @@
 name: odoo-i18n
 description: |
   Add multi-language (i18n) support to Odoo 18 modules — PO files, JSONB translations, JS _t(), email templates, and website language configuration. Use this skill when the user wants to translate an Odoo module, add language support, create PO files, internationalize JS code, or make email templates multilingual. Trigger on: "translate", "i18n", "translation", "PO file", "language", "multilingual", "překlad", "přeložit", "jazykové mutace", "vícejazyčný", "lokalizace", "internationalization", "_t()", "multi-language".
-version: 0.1.0
 ---
 
 # Odoo 18 Internationalization (i18n)
@@ -69,8 +68,12 @@ Create `i18n/` directory in the module with:
 
 For website modules, ensure target languages are:
 1. Active in `res_lang`
-2. Added to `website_lang_rel`
+2. Added to `website_lang_rel` (NOT `website_res_lang_rel` — that table doesn't exist)
 3. Loaded with `--load-language` and `--i18n-overwrite` flags
+
+**Preferred approach:** Create a `settings_*` companion module with XML data file that activates languages and sets website config. See `references/i18n-patterns.md` section 6, Option A.
+
+**CRITICAL Odoo 18 change:** `base.language.install` wizard uses `lang_ids` (Many2many), NOT `lang` (Selection as in Odoo 16/17). Using the old `lang` field throws `ValueError: Invalid field 'lang' on model 'base.language.install'`.
 
 ### Step 5: Load translations
 

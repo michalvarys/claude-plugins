@@ -304,15 +304,92 @@ Note: On macOS with OrbStack, prefix with `DOCKER_HOST=` if using the OrbStack s
 
 ## 6. Website Language Configuration
 
-### Activate languages via SQL
+### Option A: Activate languages via XML data file (RECOMMENDED)
+
+Create a companion `settings_*` module (e.g., `settings_hotel_arena`) with language config in `data/website_config_data.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="1">
+
+    <!-- Activate languages -->
+    <record id="lang_cs" model="res.lang">
+        <field name="active" eval="True"/>
+    </record>
+    <!-- Use base.lang_* external IDs: base.lang_cs, base.lang_de, base.lang_ru, base.lang_en -->
+
+    <!-- Alternative: activate via function call -->
+    <function model="res.lang" name="write">
+        <value model="res.lang" search="[('code', 'in', ['cs_CZ', 'de_DE', 'ru_RU'])]"/>
+        <value eval="{'active': True}"/>
+    </function>
+
+    <!-- Install translations via wizard -->
+    <!-- CRITICAL: Odoo 18 uses 'lang_ids' (Many2many), NOT 'lang' -->
+    <record id="install_cs" model="base.language.install">
+        <field name="lang_ids" eval="[(6, 0, [ref('base.lang_cs')])]"/>
+        <field name="overwrite" eval="False"/>
+    </record>
+    <function model="base.language.install" name="lang_install">
+        <value eval="[ref('install_cs')]"/>
+    </function>
+
+    <!-- Set website default language and available languages -->
+    <record id="website.default_website" model="website">
+        <field name="default_lang_id" ref="base.lang_cs"/>
+        <field name="language_ids" eval="[(6, 0, [
+            ref('base.lang_cs'),
+            ref('base.lang_de'),
+            ref('base.lang_ru'),
+            ref('base.lang_en'),
+        ])]"/>
+    </record>
+
+</data>
+</odoo>
+```
+
+**Settings companion module `__manifest__.py`:**
+
+```python
+{
+    'name': 'Hotel Arena Settings',
+    'summary': 'Base configuration: languages, website settings',
+    'category': 'Website',
+    'version': '18.0.1.0.0',
+    'license': 'LGPL-3',
+    'depends': ['website'],
+    'data': ['data/website_config_data.xml'],
+    'installable': True,
+}
+```
+
+**Key facts about `base.language.install` in Odoo 18:**
+- Field is `lang_ids` (Many2many to `res.lang`), NOT `lang` (Selection) as in older versions
+- Also has `website_ids` field for per-website language assignment
+- Call `lang_install()` method to trigger PO file loading
+
+**Common `base.lang_*` external IDs:**
+- `base.lang_cs` → `cs_CZ` (Czech)
+- `base.lang_de` → `de_DE` (German)
+- `base.lang_ru` → `ru_RU` (Russian)
+- `base.lang_en` → `en_US` (English)
+- `base.lang_fr` → `fr_FR` (French)
+- `base.lang_sk` → `sk_SK` (Slovak)
+- `base.lang_uk` → `uk_UA` (Ukrainian)
+- `base.lang_pl` → `pl_PL` (Polish)
+
+### Option B: Activate languages via SQL (quick fix / debugging)
 
 ```sql
 -- 1. Activate languages in res_lang
-UPDATE res_lang SET active = true WHERE code IN ('cs_CZ', 'uk_UA', 'en_US');
+UPDATE res_lang SET active = true WHERE code IN ('cs_CZ', 'de_DE', 'ru_RU', 'en_US');
 
 -- 2. Add languages to website
+-- IMPORTANT: table is 'website_lang_rel' (NOT 'website_res_lang_rel')
 INSERT INTO website_lang_rel (website_id, lang_id)
-SELECT 1, id FROM res_lang WHERE code IN ('cs_CZ', 'uk_UA')
+SELECT 1, id FROM res_lang WHERE code IN ('cs_CZ', 'de_DE', 'ru_RU')
 ON CONFLICT DO NOTHING;
 
 -- 3. Set default language
@@ -321,16 +398,30 @@ UPDATE website SET default_lang_id = (
 ) WHERE id = 1;
 ```
 
+### Option C: Activate via Odoo shell
+
+```python
+# CRITICAL: Odoo 18 wizard uses 'lang_ids', NOT 'lang'
+for lang_code in ['cs_CZ', 'de_DE', 'ru_RU']:
+    lang = env['res.lang'].search([('code', '=', lang_code)], limit=1)
+    wizard = env['base.language.install'].create({
+        'lang_ids': [(6, 0, lang.ids)],
+        'overwrite': False,
+    })
+    wizard.lang_install()
+env.cr.commit()
+```
+
 ### Load translations during upgrade
 
 ```bash
 python3 odoo-bin -d dbname -u module1,module2 --stop-after-init \
-    --load-language=cs_CZ,uk_UA --i18n-overwrite \
+    --load-language=cs_CZ,de_DE,ru_RU --i18n-overwrite \
     --addons-path="/app/addons,/app/custom"
 ```
 
 Flags:
-- `--load-language=cs_CZ,uk_UA` — loads PO files for these languages
+- `--load-language=cs_CZ,de_DE,ru_RU` — loads PO files for these languages
 - `--i18n-overwrite` — overwrites existing translations (important for updates)
 
 ## 7. Model Language Field Pattern

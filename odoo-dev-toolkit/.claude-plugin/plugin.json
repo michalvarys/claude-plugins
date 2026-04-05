@@ -1,7 +1,7 @@
 {
   "name": "odoo-dev-toolkit",
-  "version": "0.1.1",
-  "description": "Complete toolkit for Odoo 18 development — QWeb website pages, module scaffolding, XML views, Python models, controllers, and wizards.",
+  "version": "0.2.0",
+  "description": "Complete toolkit for Odoo 18 development — QWeb website pages, module scaffolding, XML views, Python models, controllers, wizards, and full theme creation with SCSS, snippets, layouts, and companion data modules.",
   "author": {
     "name": "Michal Varys"
   },
@@ -13,6 +13,10 @@
     "xml",
     "odoo18",
     "website",
-    "module"
+    "module",
+    "theme",
+    "scss",
+    "snippets",
+    "layout"
   ]
 }
