@@ -17,6 +17,8 @@ Read the reference files in `references/` directory:
 - **theme-scss-architecture.md** — SCSS variables, palettes, Bootstrap overrides, component styles, responsive design
 - **theme-layout-snippets.md** — Header/footer inheritance, snippet patterns, page patterns, snippet registration
 - **theme-data-modules.md** — Companion module patterns (pricing, schedule, etc.) with models, controllers, templates
+- **theme-countdown-newsletter-particles.md** — Countdown page, newsletter (mailing integration), snippet editor options (datetimepicker), canvas particles with bokeh effect
+- **theme-hero-animations-ios.md** — Layered hero animations, iOS crash prevention, editor DOM persistence resilience, WebGL safety, memory leak patterns
 
 ## Core Principles
 
@@ -167,3 +169,35 @@ For each data module (e.g., `brandname_pricing`, `brandname_schedule`):
 - **`/shop?category=<slug>` breaks `website_sale`** — Odoo's shop controller (`addons/website_sale/controllers/main.py`, `Category.search([('id', '=', int(category))])`) calls `int()` on the `category` query arg and raises `ValueError: invalid literal for int() with base 10: 'cannabis'` for any slug-style link. For **real** category links use the actual `product.public.category` record ID (or better, the Odoo-generated `/shop/category/<slug>-<id>` URL). For **static preview cards** that should open a local modal, use `<button type="button" data-trafika-cat="cannabis">` instead of `<a href>`, and drive the modal from JS. Never ship `/shop?category=slug` links from a theme.
 - **Client-side modal pattern for static category/product cards** — When a theme has "preview" cards for categories that should pop a list of products without navigating, the cleanest pattern is: (1) cards are `<button data-xxx-cat="key">`; (2) a reusable modal template is injected at body level via `inherit_id="website.layout"` with `<xpath expr="//body" position="inside">`; (3) JS reads `data-*` on click and populates the modal. For real product data + images, do NOT hardcode data in JS — emit a `<script type="application/json" id="theme-catalog-data">` from a QWeb template that iterates `env['product.template']` server-side, include the `id` in each product entry, and render `<img src="/web/image/product.template/{{id}}/image_512"/>` in JS. Avoids extra HTTP calls, avoids flicker, and lets content editors update images from the backend with no JS changes.
 - **Simplified product admin without replacing Sales UI** — Clients often want a "Products" menu for content editors that shows only web-relevant fields (name, image, price label, badge, stock display, category) without exposing procurement/accounting/variants. Pattern: create a small companion module (e.g. `theme_x_web_catalog`) that (a) adds a few additive `Char`/`Integer` fields on `product.template` — never override existing fields; (b) defines `ir.ui.view` records with `priority=99` AND `mode="primary"` so they never hijack the native Sales list/form; (c) creates a dedicated `ir.actions.act_window` bound explicitly to those views via `ir.actions.act_window.view` records (priority shuffling in other modules can't steal them); (d) adds its OWN top-level `menuitem` (e.g. "Elite Trafika") restricted to a custom security group, SEPARATE from the Sales menu — admins still see both because `group_system` implies the custom group; (e) uses a `post_init_hook` reading a bundled `data/seed_products.json` to seed categories (`product.public.category`) and products idempotently (check-by-name). This keeps `website_sale` and all native e-commerce flows fully functional while giving non-admin staff a clean, minimal editing UI.
+
+### Controller & API patterns (hard-earned)
+
+- **`request.env.sudo()` does NOT exist in Odoo 18** — `Environment` has no `.sudo()` method. Always call `.sudo()` on the model recordset: `request.env['mailing.contact'].sudo()`. Writing `request.env.sudo()['model']` raises `AttributeError` at runtime but Odoo swallows it inside a JSON-RPC response — the only symptom is a generic error on the frontend. Check `docker compose logs web --tail=20` to see the real traceback.
+- **JSON-RPC wrapper mandatory for `type='json'` controllers** — Frontend `fetch()` calls to `type='json'` Odoo controllers MUST send the JSON-RPC 2.0 envelope: `{ jsonrpc: "2.0", method: "call", params: { email } }`. Plain `{ email }` body silently fails — the controller receives all kwargs as `None`. Response is wrapped in `{ result: {...} }`, not bare JSON.
+- **Newsletter: use `mailing.contact` + `mailing.subscription`, NOT custom models** — Creating a custom `newsletter_subscriber` model means subscribers won't appear in Odoo's Email Marketing app. Always write to `mailing.contact` + `mailing.subscription` (requires `mass_mailing` dependency). The controller should auto-create the `mailing.list` on first subscribe if it doesn't exist.
+- **Asset bundle cache hides JS/SCSS changes** — After editing frontend JS or SCSS, the old compiled bundles stay in `ir.attachment`. Clear with: `docker compose exec -T db psql -U <user> -d <db> -c "DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"` then `docker compose restart web`. Without this, the browser loads stale JS even after hard refresh (Cmd+Shift+R), because Odoo serves the cached bundle URL which hasn't changed.
+
+### Snippet options patterns
+
+- **`we-datetimepicker`** stores epoch **seconds** (not ms) in `data-end-time` on the snippet element. Frontend JS must multiply by 1000: `parseInt(el.dataset.endTime) * 1000`.
+- **Options JS goes in `website.assets_wysiwyg` bundle** (editor-only), NOT `web.assets_frontend`. Register via `theme.ir.asset` with `bundle=website.assets_wysiwyg`.
+- **Options JS `updateUI` must sync derived attributes** — When the editor sets `data-end-time` (epoch) on a section, the options JS `updateUI` method must propagate it to child elements (e.g. `.ea-countdown[data-target]` as ISO string) so the frontend timer reads the updated value.
+
+### Hero animations & iOS stability (hard-earned)
+
+- **Editor DOM persistence** — Odoo editor saves inline `style` and `src` attributes on save. Any JS animation that sets `opacity`, `transform`, or `src` must be RESET on every `start()` via a `_resetLayers()` method. See `references/theme-hero-animations-ios.md`.
+- **Stage scaling flash** — A fixed-size stage (1920x1080) scaled by JS flashes at full size on the first frame. Fix: CSS `opacity: 0` on stage, JS reveals AFTER `_scaleStage()`.
+- **iOS GPU memory crash** — `will-change`, `mix-blend-mode`, `filter: drop-shadow`, WebGL, and infinite `setTimeout` loops each consume GPU RAM. On iOS they stack and crash the page. Detect mobile via `isLowEnd()`, disable GPU-heavy features via CSS `@media`, keep CSS transitions (they're cheap).
+- **WebGL on mobile** — NEVER run WebGL on mobile/tablet. Threshold: `window.innerWidth <= 1024` OR touch device detection. Always handle `webglcontextlost`/`webglcontextrestored`.
+- **`visibilitychange` is mandatory** — Pause all `requestAnimationFrame` loops and clear all `setTimeout` chains when `document.hidden`. iOS kills pages that consume GPU while backgrounded.
+- **`fallbackTimer` temporal dead zone** — In `_preloadImages`, `img.complete` triggers callbacks synchronously during `forEach`. Declare `let fallbackTimer = null` BEFORE the loop, not `const` after it.
+- **No `will-change` on animation layers** — 6 layers × 1920×1080 × `will-change: transform, opacity` = ~50 MB GPU RAM. One-shot CSS transitions don't need it.
+
+### Performance patterns for canvas/animation
+
+- **`prefers-reduced-motion: reduce`** → skip ALL canvas animations entirely. Never ignore this.
+- **IntersectionObserver** to pause `requestAnimationFrame` loops when the animated section scrolls off-screen — prevents burning CPU/battery on invisible content.
+- **30fps cap** via timestamp delta is sufficient for ambient effects (particles, bokeh). Full 60fps is wasted on slow-drifting elements.
+- **Bokeh blur via `createRadialGradient`** (center opaque → edge transparent) is far cheaper than `ctx.filter = 'blur()'` which forces per-frame GPU compositing.
+- **Mobile particle counts**: halve the count (e.g. 15 embers + 4 bokeh vs 30+7 desktop). Check `window.innerWidth < 768` at init time.
+- **Canvas at 1x DPR** (no `devicePixelRatio` scaling) — particles are blurry blobs, retina resolution is wasted overhead.

@@ -61,14 +61,58 @@ URL references update rules:
 
 ## JavaScript → Odoo assets
 
+**IMPORTANT:** All generated JS files MUST use `publicWidget.Widget` (not vanilla IIFE wrappers).
+Odoo 18 manages widget lifecycle (init, destroy, editor mode) through `publicWidget` — raw
+`DOMContentLoaded` / `(function(){})()` patterns bypass this and cause issues with the website
+editor, hot-reload, and page transitions.
+
 | Static pattern | Odoo target |
 |---|---|
-| `js/main.js` with vanilla event listeners | `static/src/js/main.js` loaded via `theme.ir.asset` into `web.assets_frontend` |
-| `js/main.js` using `@odoo-module` | Keep as an `/** @odoo-module **/` file — no change needed |
+| `js/main.js` with vanilla event listeners | Rewrite as `publicWidget.registry.X = publicWidget.Widget.extend({ selector: '...', start() {...} })` in `static/src/js/main.js` |
+| `js/main.js` using `@odoo-module` | Keep as an `/** @odoo-module **/` file — but ensure DOM widgets use `publicWidget.Widget.extend`, not raw event listeners |
 | Inline `<script>` for pre-bundle work (preloader, audio unlock) | Inject into `website.layout` via xpath `//head` position=inside or `//body` position=inside |
 | CDN scripts (GSAP, Vanta) | Inject `<script src="...">` into layout.xml `<head>` (inline — allows pre-bundle execution) |
 | `publicWidget.registry.X` | Keep — it's the correct Odoo 18 pattern for DOM widgets |
 | OWL components | Keep, mount against a hidden host element on DOMContentLoaded |
+
+### publicWidget pattern (required)
+
+```javascript
+/** @odoo-module **/
+import publicWidget from "@web/legacy/js/public/public_widget";
+
+publicWidget.registry.BrandFeatureName = publicWidget.Widget.extend({
+    selector: '.brand-feature-root',   // CSS selector the widget attaches to
+    events: {
+        'click .some-btn': '_onClick',  // delegated events (auto-cleaned on destroy)
+    },
+
+    start() {
+        // DOM setup, fetch data, bind global listeners
+        // Use this.el (the matched DOM element) instead of document.querySelector
+        this._onResize = this._handleResize.bind(this);
+        window.addEventListener('resize', this._onResize);
+        return this._super(...arguments);
+    },
+
+    destroy() {
+        // Clean up global listeners (delegated events are auto-cleaned)
+        window.removeEventListener('resize', this._onResize);
+        this._super(...arguments);
+    },
+
+    _onClick(ev) { /* handler */ },
+    _handleResize() { /* handler */ },
+});
+```
+
+**Do NOT generate** vanilla patterns like:
+```javascript
+// ❌ WRONG — bypasses Odoo widget lifecycle
+(function () {
+    document.addEventListener('DOMContentLoaded', function () { ... });
+})();
+```
 
 ## Text content and translations
 
