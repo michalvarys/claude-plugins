@@ -328,6 +328,110 @@ publicWidget.registry.BrandMobileMenu = publicWidget.Widget.extend({
 </odoo>
 ```
 
+## One-page scroll spy widget (static/src/js/main.js)
+
+On a one-page site, Odoo marks ALL anchor nav links as `.active` (see `theme-scss-architecture.md` → "One-page navigation"). This `publicWidget` uses IntersectionObserver to apply a custom class only to the link whose target section is currently in the viewport.
+
+```javascript
+/** @odoo-module **/
+import publicWidget from "@web/legacy/js/public/public_widget";
+
+publicWidget.registry.BrandScrollSpy = publicWidget.Widget.extend({
+    selector: '#wrapwrap',
+    disabledInEditableMode: true,
+
+    start() {
+        this._super(...arguments);
+        // Collect ALL nav links with anchor fragments (desktop + mobile copies)
+        this._navLinks = [...document.querySelectorAll(
+            'header .navbar-nav .nav-link[href*="#"], header .navbar-nav a[href*="#"]'
+        )];
+        if (!this._navLinks.length) {
+            return;
+        }
+
+        // Map each section element → array of links pointing to it
+        // (array because desktop + mobile navs duplicate links)
+        this._sectionMap = new Map();
+        for (const link of this._navLinks) {
+            const href = link.getAttribute('href');
+            const hash = href.includes('#') ? href.split('#')[1] : null;
+            if (hash) {
+                const section = document.getElementById(hash);
+                if (section) {
+                    if (!this._sectionMap.has(section)) {
+                        this._sectionMap.set(section, []);
+                    }
+                    this._sectionMap.get(section).push(link);
+                }
+            }
+        }
+        if (!this._sectionMap.size) {
+            return;
+        }
+
+        this._activeLinks = [];
+        this._observer = new IntersectionObserver(
+            (entries) => this._onIntersect(entries),
+            { rootMargin: '-20% 0px -60% 0px' },
+        );
+        for (const section of this._sectionMap.keys()) {
+            this._observer.observe(section);
+        }
+    },
+
+    destroy() {
+        if (this._observer) {
+            this._observer.disconnect();
+        }
+        this._activeLinks.forEach(l => l.classList.remove('brand-scrollspy-active'));
+        this._super(...arguments);
+    },
+
+    _onIntersect(entries) {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                const links = this._sectionMap.get(entry.target);
+                if (!links) continue;
+                this._activeLinks.forEach(l => l.classList.remove('brand-scrollspy-active'));
+                links.forEach(l => l.classList.add('brand-scrollspy-active'));
+                this._activeLinks = links;
+            }
+        }
+    },
+});
+```
+
+**Key details:**
+- `rootMargin: '-20% 0px -60% 0px'` — activates when a section enters the top 20–40% of the viewport (adjust to taste)
+- Uses a `Map<Element, Link[]>` (not `Map<Element, Link>`) because Odoo's responsive header often duplicates nav links for desktop and mobile menus — both copies need the active class
+- The CSS class is `brand-scrollspy-active` (not `.active`) — see `theme-scss-architecture.md` for the SCSS side
+- `disabledInEditableMode: true` prevents the observer from running in the website editor
+- Replace `brand-scrollspy-active` with `<brand>-scrollspy-active` (e.g. `gl-scrollspy-active`) matching your theme prefix
+
+**Smooth scroll companion widget** — pair the scroll spy with a smooth-scroll handler for anchor clicks:
+
+```javascript
+publicWidget.registry.BrandSmoothScroll = publicWidget.Widget.extend({
+    selector: '#wrapwrap',
+    events: {
+        'click a[href^="#"]': '_onAnchorClick',
+    },
+
+    _onAnchorClick(ev) {
+        const href = ev.currentTarget.getAttribute('href');
+        if (!href || href === '#') {
+            return;
+        }
+        const target = document.querySelector(href);
+        if (target) {
+            ev.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth' });
+        }
+    },
+});
+```
+
 ## Snippet Registration (views/snippets/snippets_registry.xml)
 
 ```xml
@@ -613,3 +717,37 @@ project_dir/
 - `theme_*` modules auto-convert `<record model="ir.*">` to `theme.ir.*` — this breaks non-theme records like `res.lang`, `website`, etc.
 - Settings module uses standard `ir.*` models, so language activation and website config work correctly
 - Theme module depends on settings module to ensure languages are ready before theme pages load
+
+---
+
+## Admin menu XML IDs (CRITICAL)
+
+When adding menu items for theme models (hero slides, gallery, etc.), the parent menu XML ID matters. The Website module has **two** similar-sounding XML IDs:
+
+| XML ID | Actual menu | What it is |
+|---|---|---|
+| `website.menu_website_configuration` | **Website** (top-level) | The root Website app menu |
+| `website.menu_website_global_configuration` | **Website > Configuration** | The Configuration submenu |
+
+**Always use `website.menu_website_global_configuration`** for theme admin menus:
+
+```xml
+<menuitem id="menu_gelato_gallery_image"
+    name="Gallery"
+    parent="website.menu_website_global_configuration"
+    action="action_gelato_gallery_image"
+    sequence="51"/>
+```
+
+Using `menu_website_configuration` places the item at the top level of the Website app, where it appears invisible because it has no parent group in the menu dropdown. The item exists in the database but users cannot find it in the UI.
+
+**Diagnosis:** If menu items are missing from the Configuration dropdown, check `parent_id` in the database:
+
+```sql
+SELECT m.id, m.name::text, m.parent_id, p.name::text
+FROM ir_ui_menu m
+LEFT JOIN ir_ui_menu p ON m.parent_id = p.id
+WHERE m.name::text ILIKE '%gallery%' OR m.name::text ILIKE '%hero%';
+```
+
+If `parent_id` points to the top-level Website menu (the one with no parent), fix the XML to use `menu_website_global_configuration`.

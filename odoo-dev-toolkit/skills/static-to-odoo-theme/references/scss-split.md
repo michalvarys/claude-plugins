@@ -274,6 +274,30 @@ body.theme_<brand>_body #wrap {
 }
 ```
 
+## Step 5b: Neutralize clearfix on grid containers
+
+Odoo injects `#wrap .container::before, #wrap .container::after { content: ""; display: table; }` globally. These pseudo-elements become invisible grid children and break any `display: grid` layout inside `#wrap`.
+
+After writing `theme.scss`, find every rule that uses `display: grid` and check whether the HTML element also has Bootstrap's `.container` class. If it does, add the clearfix guard:
+
+```scss
+.brand-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+
+    // Odoo clearfix pseudo-elements break grid layout inside #wrap
+    &::before,
+    &::after {
+        display: none;
+    }
+}
+```
+
+**Diagnostic clue:** if a grid layout works in the footer but breaks inside `#wrap`, the clearfix pseudo-elements are the cause — the footer is a sibling of `#wrap`, not a descendant, so the rule doesn't apply there.
+
+See `odoo-theme/references/theme-scss-architecture.md` → "CSS Grid inside `#wrap`" for the full explanation.
+
 ## Step 6: Media queries → `responsive.scss`
 
 Pull every `@media` block out of the above files and put them here:

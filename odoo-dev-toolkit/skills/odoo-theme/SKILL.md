@@ -177,6 +177,67 @@ For each data module (e.g., `brandname_pricing`, `brandname_schedule`):
 - **Newsletter: use `mailing.contact` + `mailing.subscription`, NOT custom models** — Creating a custom `newsletter_subscriber` model means subscribers won't appear in Odoo's Email Marketing app. Always write to `mailing.contact` + `mailing.subscription` (requires `mass_mailing` dependency). The controller should auto-create the `mailing.list` on first subscribe if it doesn't exist.
 - **Asset bundle cache hides JS/SCSS changes** — After editing frontend JS or SCSS, the old compiled bundles stay in `ir.attachment`. Clear with: `docker compose exec -T db psql -U <user> -d <db> -c "DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"` then `docker compose restart web`. Without this, the browser loads stale JS even after hard refresh (Cmd+Shift+R), because Odoo serves the cached bundle URL which hasn't changed.
 
+### Frontend JS patterns (hard-earned)
+
+- **`rpc` not `jsonrpc` in Odoo 18** — `@web/core/network/rpc` exports `rpc`, NOT `jsonrpc`. Writing `import { jsonrpc } from "@web/core/network/rpc"` silently fails because `jsonrpc` is `undefined`. If wrapped in try/catch (common in widgets), the `TypeError` is swallowed and the widget appears to do nothing. Always use: `import { rpc } from "@web/core/network/rpc"` + `await rpc('/route', {})`.
+- **`publicWidget` RPC pattern for Odoo 18** — Frontend widgets that fetch data via RPC use: `import publicWidget from "@web/legacy/js/public/public_widget"` + `import { rpc } from "@web/core/network/rpc"`. Call `rpc('/route', {})` directly (no `this._rpc()` — that's Odoo 16 legacy). The function returns a Promise. Use `async/await` in widget methods.
+- **Website editor saves JS-generated DOM — `destroy()` must clean up** — When a `publicWidget` dynamically creates elements (slides, dots, tabs), the website editor saves that DOM state on page save. `contenteditable="false"` on containers prevents text editing but does NOT prevent the editor from saving their innerHTML. The only reliable fix is a two-part cleanup:
+  1. **`destroy()` must empty all JS-generated containers** — `disabledInEditableMode: true` calls `destroy()` when entering edit mode. This is the moment to wipe the DOM so the editor saves clean HTML.
+  2. **`start()` must call `_cleanSavedState()`** — in case stale content was saved before the fix was deployed.
+```js
+start() {
+    this._super(...arguments);
+    this._cleanSavedState();
+    return this._loadData();
+},
+destroy() {
+    clearInterval(this.timer);
+    if (this._observer) this._observer.disconnect();
+    // Clean JS-generated DOM before editor saves
+    const bg = this.el.querySelector('.container-bg');
+    const content = this.el.querySelector('.container-content');
+    const nav = this.el.querySelector('.container-nav');
+    if (bg) bg.innerHTML = '';
+    if (content) content.innerHTML = '';
+    if (nav) nav.innerHTML = '';
+    this.el.classList.remove('loaded-class');
+    this._super(...arguments);
+},
+_cleanSavedState() {
+    // Same cleanup as destroy — handles stale saved HTML
+    this.el.classList.add('no-transition');
+    this.el.classList.remove('loaded-class');
+    const bg = this.el.querySelector('.container-bg');
+    const content = this.el.querySelector('.container-content');
+    const nav = this.el.querySelector('.container-nav');
+    if (bg) bg.innerHTML = '';
+    if (content) content.innerHTML = '';
+    if (nav) nav.innerHTML = '';
+},
+```
+- **Prevent double animation on page load** — If `start()` cleans saved state and then re-renders from RPC, the load animation plays twice (once from stale HTML, once from fresh). Fix: add a `no-transition` class in `_cleanSavedState()` that disables all animations via CSS `animation: none !important; transition: none !important;`. Remove it in a `requestAnimationFrame` after rendering, then add the `loaded` class to trigger the entrance animation once.
+- **Editor-visible elements need `body.editor_enable` overrides** — Odoo 18 adds `editor_enable` to `<body>` inside the editor iframe. Elements with `opacity: 0` waiting for JS animation are invisible in edit mode. Fix with CSS:
+```scss
+body.editor_enable .my-logos,
+body.editor_enable .my-fade-up {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+}
+```
+  Use `!important` because theme styles are typically scoped under high-specificity selectors like `.theme_page, body.theme_body #wrap { ... }` which outrank `body.editor_enable .class`.
+- **Entrance animation for RPC-loaded content** — When JS renders content from RPC (slides, cards), the first visible item should animate in. Use a one-shot CSS class (e.g. `gl-initial`) added by JS, with `animationend` listener to remove it:
+```js
+const firstSlide = this.contentSlides[0];
+if (firstSlide) {
+    firstSlide.classList.add('gl-initial');
+    firstSlide.addEventListener('animationend', () => {
+        firstSlide.classList.remove('gl-initial');
+    }, { once: true });
+}
+```
+  This prevents the entrance animation from replaying on every slide transition.
+
 ### Snippet options patterns
 
 - **`we-datetimepicker`** stores epoch **seconds** (not ms) in `data-end-time` on the snippet element. Frontend JS must multiply by 1000: `parseInt(el.dataset.endTime) * 1000`.

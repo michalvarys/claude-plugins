@@ -92,6 +92,22 @@ Walk this list before declaring the generated theme module ready. Every item is 
 - [ ] No `@import url(...)` for fonts
 - [ ] No `@font-face` with `src: url(...)` pointing at theme-relative font files (fonts declared in layout.xml instead)
 
+## SCSS — CSS Grid + clearfix guard
+
+- [ ] Every element with `display: grid` in SCSS that also has `.container` class in HTML (or sits inside `.container` inside `#wrap`) includes `&::before, &::after { display: none; }` — Odoo's `#wrap .container::before/::after` clearfix pseudo-elements break grid layouts by becoming invisible grid items
+
+## One-page navigation — scroll spy
+
+- [ ] If the site is a one-page layout (menu links use `/#section-id` anchors), the SCSS neutralizes Odoo's `.active` class on nav links (renders same as non-active) to prevent all links lighting up simultaneously
+- [ ] A custom scroll spy class (e.g. `.gl-scrollspy-active`) is defined in `header.scss` with the accent color
+- [ ] `main.js` includes a `publicWidget` scroll spy widget using IntersectionObserver that applies the custom class based on which section is in the viewport
+- [ ] The scroll spy widget stores arrays of links per section (not single links) to handle desktop + mobile nav duplicates
+- [ ] A smooth-scroll companion widget is included for anchor click handling
+
+## SCSS — logo image filter
+
+- [ ] `header.scss` does NOT apply `filter: brightness(0) invert(1)` to `.navbar-brand img` — this destroys multi-colored logos. If a light logo variant is needed, use a separate image file instead.
+
 ## SCSS — dual-scope
 
 - [ ] `theme.scss` rules are wrapped in `.theme_<brand>_page, body.theme_<brand>_body #wrap { ... }`
@@ -113,6 +129,35 @@ Walk this list before declaring the generated theme module ready. Every item is 
 - [ ] `data/website_menu_data.xml` uses `theme.website.menu` (NOT `website.menu`)
 - [ ] Menu records have `name`, `url`, `sequence`
 - [ ] Sequences are spaced (10, 20, 30) so the user can insert items later
+
+## CSS class prefix consistency
+
+- [ ] All custom CSS classes use a consistent prefix (e.g., `gl-` for Gelato, `et-` for Elite Trafika)
+- [ ] No bare class names like `.accent` that conflict with Odoo built-ins or are referenced as `.gl-accent` in JS/HTML — grep for orphaned unprefixed classes:
+  ```bash
+  # Find unprefixed classes in SCSS that might be referenced with prefix in HTML/JS
+  grep -n '\.\(accent\|badge\|card\|icon\|btn\|nav\|hero\)' theme_<brand>/static/src/scss/theme.scss
+  ```
+- [ ] Cross-check: every class used in JS `createElement`/`className` assignments exists in SCSS with the same name
+
+## Asset cache rebuild
+
+- [ ] **Never** use `DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%'` to clear asset cache
+- [ ] Use `?debug=assets` URL parameter in the browser to trigger asset rebuild after SCSS/JS changes
+- [ ] After module upgrade (`-u theme_<brand>`), assets are rebuilt automatically on next page load
+
+## Admin menu placement
+
+- [ ] Admin menu items use `parent="website.menu_website_global_configuration"` (NOT `website.menu_website_configuration`)
+- [ ] Verify menus appear under Website > Configuration in the backend
+
+## Dynamic content (if applicable)
+
+- [ ] RPC controller returns `image_url` using `/web/image/<model>/<id>/<field>` pattern
+- [ ] JS widget has `disabledInEditableMode: true`
+- [ ] Security CSV has public read-only + designer full access rows
+- [ ] Seed data uses `noupdate="1"` so admin edits survive upgrades
+- [ ] Seed images use `type="base64" file="theme_<brand>/static/src/img/..."` syntax
 
 ## Smoke install test
 

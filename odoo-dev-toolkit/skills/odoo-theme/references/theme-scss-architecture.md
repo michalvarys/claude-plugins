@@ -562,6 +562,107 @@ body.my-theme-body #wrap {
 
 **Why not just drop the scope?** Unscoped theme SCSS (`.ea-hero { ... }` at root) leaks into Odoo's backend admin UI, website editor chrome, and other themes — often breaking them subtly. The body-class guard keeps isolation while covering editor-created pages.
 
+## CSS Grid inside `#wrap` — clearfix pseudo-elements (CRITICAL)
+
+Odoo preserves Bootstrap's clearfix pattern on `.container` elements inside `#wrap`:
+
+```css
+/* Odoo injects this globally — you cannot remove it */
+#wrap .container::before,
+#wrap .container::after {
+    content: "";
+    display: table;
+}
+```
+
+These `::before` and `::after` pseudo-elements are **invisible** but they are **real DOM children**. When you apply `display: grid` to an element that also has the `.container` class (or inherits the clearfix), those pseudo-elements become grid items.
+
+**How it breaks:** A 2-column grid (`grid-template-columns: 1fr 1fr`) with two visible children *plus* `::before` and `::after` has **4 grid items** total. CSS Grid distributes them as 2 rows × 2 columns:
+
+```
+Row 1: [::before] [child-1]
+Row 2: [child-2]  [::after]
+```
+
+This looks like single-column stacking — each visible child occupies its own row. The bug is invisible in DevTools unless you inspect `gridTemplateRows` (which shows two rows) or check the pseudo-elements' `display` property.
+
+**The fix:** Always neutralize the clearfix pseudo-elements inside any grid container that sits inside `#wrap`:
+
+```scss
+.brand-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+
+    &::before,
+    &::after {
+        display: none;
+    }
+}
+```
+
+**Why this only affects `#wrap`:** The footer (`#wrapwrap > footer`) and header (`#wrapwrap > header`) are siblings of `#wrap`, so the `#wrap .container` clearfix rule does not apply there. A grid layout that works in the footer will break when moved inside `#wrap` — this is the diagnostic clue.
+
+**When to apply the fix:**
+- Any element with `display: grid` that has `.container` class AND lives inside `#wrap`
+- Any element with `display: grid` inside a parent that has `.container` class inside `#wrap`
+- Flexbox is NOT affected (flexbox ignores pseudo-element children differently)
+
+**Detection:** After generating theme SCSS, grep for `display: grid` and cross-reference with elements that have `.container` class in the snippet/page HTML. Every match needs the `::before/::after { display: none }` guard.
+
+## One-page navigation — Odoo `.active` class conflict (CRITICAL)
+
+On a one-page site where all menu links use anchor fragments (`/#hero`, `/#about`, `/#contact`), Odoo's frontend JS sets the `.active` class on **every** nav link whose `href` starts with the current page URL. Since all anchors share the same page (`/`), ALL links become active simultaneously — the entire nav appears highlighted.
+
+**The fix has two parts: SCSS + JS.**
+
+### Part 1: SCSS — neutralize `.active`, add custom scroll spy class
+
+In `header.scss`, override Odoo's `.active` to render the same as the default (non-active) state, and add a custom `.gl-scrollspy-active` class for real section-based highlighting:
+
+```scss
+#wrapwrap > header {
+    .navbar-nav .nav-link {
+        color: rgba(255, 255, 255, 0.8) !important;
+
+        // Odoo sets .active on ALL anchor links when on the same page — ignore it
+        &.active {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        &:hover,
+        &.gl-scrollspy-active {
+            color: $gl-primary !important;
+        }
+    }
+}
+```
+
+### Part 2: JS — IntersectionObserver scroll spy
+
+See `theme-layout-snippets.md` → "One-page scroll spy widget" for the full `publicWidget` implementation.
+
+**When this applies:** Any theme with a one-page layout where menu items link to `/#section-id` anchors on the same page.
+
+## Logo image filters — preserving original colors
+
+**NEVER apply `filter: brightness(0) invert(1)` to a logo image** unless the logo is guaranteed to be single-color (pure black or pure white). This filter converts ALL pixels to white, destroying any multi-colored elements in the logo (e.g. a turquoise accent, a red icon).
+
+```scss
+// ❌ WRONG — destroys multi-colored logos
+.navbar-brand img {
+    max-height: 50px;
+    filter: brightness(0) invert(1);
+}
+
+// ✅ CORRECT — let the logo keep its original colors
+.navbar-brand img {
+    max-height: 50px;
+}
+```
+
+If the header has a dark background and the logo needs to be light, the logo file itself should be the light variant (e.g. `logo-white.svg`). Don't use CSS filters as a shortcut — the user's logo may contain brand colors that must be preserved.
+
 ## SCSS Gotchas
 
 - **`:has()` NOT supported** — Odoo uses libsass compiler which doesn't support `:has()` selector

@@ -108,6 +108,25 @@ Follow patterns in `references/view-patterns.md`. Every view is wrapped in:
 - [ ] `<chatter/>` at the bottom of forms for mail-enabled models
 - [ ] Search views define at least basic field searches and group-by options
 - [ ] Menu items are ordered with `sequence` attribute
+- [ ] List views for content models are non-editable (no `editable` attribute) — editing happens in form view
+
+## List View Best Practices
+
+### Editable vs read-only lists
+
+- **Use `editable="bottom"` or `editable="top"`** only for simple data-entry models (e.g. tags, categories) where inline editing saves time.
+- **For content management models** (slides, pages, articles) with multiple fields including images, rich text, or complex relationships — use a **non-editable list** that opens a form view on click. This prevents user confusion from accidentally editing in the list.
+- To make a list non-editable (click opens form detail), simply omit the `editable` attribute from `<list>`:
+```xml
+<list>
+    <field name="sequence" widget="handle"/>
+    <field name="name"/>
+    <field name="image" widget="image" options="{'size': [80, 50]}"/>
+    <field name="active"/>
+</list>
+```
+- Use `open_form_view="True"` on `<list>` to explicitly force form-view opening behavior.
+- Show only **overview columns** in the list (name, thumbnail, status) — detailed fields belong in the form view.
 
 ## Inheritance Patterns
 

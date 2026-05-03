@@ -114,6 +114,28 @@ publicWidget.registry.BrandFeatureName = publicWidget.Widget.extend({
 })();
 ```
 
+## One-page anchor navigation
+
+If the static bundle is a one-page site where all menu items link to `#section-id` anchors:
+
+| Static pattern | Odoo target | Notes |
+|---|---|---|
+| `<a href="#about">` in nav | `<a href="/#about">` in menu data | Odoo menu URLs must include the page path prefix |
+| Active nav highlight via CSS `:target` or JS | `publicWidget` scroll spy widget with IntersectionObserver | Odoo's built-in `.active` class marks ALL anchor links as active on the same page — must be neutralized in SCSS and replaced with custom scroll spy |
+| `scroll-behavior: smooth` on `<html>` | `publicWidget` smooth-scroll widget | Use `target.scrollIntoView({ behavior: 'smooth' })` on anchor clicks |
+
+**Menu data for one-page sites:**
+
+```xml
+<record id="menu_about" model="theme.website.menu">
+    <field name="name">About</field>
+    <field name="url">/#about</field>
+    <field name="sequence">20</field>
+</record>
+```
+
+See `odoo-theme/references/theme-layout-snippets.md` → "One-page scroll spy widget" for the full JS implementation and `odoo-theme/references/theme-scss-architecture.md` → "One-page navigation" for the SCSS fix.
+
 ## Text content and translations
 
 | Static construct | Odoo target |

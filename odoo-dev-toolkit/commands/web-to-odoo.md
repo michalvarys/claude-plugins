@@ -81,13 +81,23 @@ Do NOT use for:
 │   - Install modules in dependency order                          │
 │   - Run seed import                                              │
 │   - Verify in browser                                            │
-│   - Hand off to user with dev workflow cheatsheet                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Stage 5: theme-responsive-validation skill (GATE)                │
+│   - Compare reference CSS to Odoo SCSS rule-by-rule              │
+│   - Remove extra overrides not in reference                      │
+│   - Fix asset load order (sequence fields)                       │
+│   - Visual verification at every breakpoint                      │
+│   - BLOCKS handoff until all checks pass                         │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Output: running Odoo 18 at http://localhost:<port>              │
 │          + theme_<brand>/ + <brand>_web_catalog/ on disk         │
+│          + responsive layout verified against reference          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -241,6 +251,32 @@ docker compose logs -f --tail=200 web
 
 If any checkbox fails, diagnose with `odoo-docker-dev/references/debug-workflows.md` before marking the migration complete.
 
+## Stage 5: Responsive validation (GATE)
+
+**Invoke:** `theme-responsive-validation` skill.
+
+This is a **blocking gate** — the migration is NOT complete until every check passes. Do not hand off to the user until this stage succeeds.
+
+**What it does:**
+
+1. **CSS comparison** — reads the reference site's responsive CSS (both inline `<style>` and external files) and compares rule-by-rule against Odoo's `responsive.scss`. Identifies extra overrides, missing overrides, and value mismatches.
+
+2. **Asset load order verification** — checks that `responsive.scss` loads AFTER `theme.scss` in the compiled CSS output. Without explicit `sequence` fields on `theme.ir.asset` records, responsive overrides can be silently ignored.
+
+3. **Computed style verification** — programmatically checks that critical layout properties (grid columns, padding, font sizes) match the reference at each breakpoint width.
+
+4. **Visual verification** — scrolls through every section at mobile width and compares screenshots against the reference.
+
+**Common fixes this stage catches:**
+
+- Extra mobile overrides that make sections look cramped (the #1 issue)
+- `responsive.scss` loading before `theme.scss` due to missing `sequence` fields
+- Font sizes, padding, or grid columns that don't match the reference
+- Missing `backdrop-filter` on buttons
+- Decorative elements hidden when the reference keeps them visible
+
+**Gate criteria:** ALL items in `theme-responsive-validation/references/responsive-validation-checklist.md` must pass.
+
 ## Handoff to user
 
 When all checks pass, present:
@@ -274,6 +310,7 @@ If a stage fails partway:
 - **Stage 2 fails** — check the static bundle is complete. Theme scaffolding is idempotent; you can delete `theme_<brand>/` and re-run.
 - **Stage 3 fails** — no side effects until the module is installed. Delete `<brand>_web_catalog/` and re-run the skill.
 - **Stage 4 fails** — the DB may be in a partial state. Use `odoo-docker-dev/references/debug-workflows.md` → "Fresh database" procedure to reset and retry.
+- **Stage 5 fails** — fix the SCSS, add missing `sequence` fields, remove extra overrides, then upgrade the module (`-u theme_<brand>`) and clear asset cache. Re-run the validation checklist. This stage is iterative — expect 2-3 rounds.
 
 Never blindly re-run Stage 4 in a loop without reading logs between attempts. Each failure has a specific cause documented in `debug-workflows.md`.
 

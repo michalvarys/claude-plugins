@@ -453,3 +453,176 @@ brandname_schedule/
 ```
 
 **Key principle:** Theme snippets show STATIC preview data (hardcoded in XML). Dynamic data lives in companion modules rendered by controllers. This keeps the theme installable without data and allows data to be managed independently.
+
+---
+
+## In-theme dynamic content pattern (RPC widget)
+
+For content that's tightly coupled to the theme (e.g., hero slides, gallery images), the model, controller, views, security, and JS can live **inside** the `theme_*` module itself rather than in a companion module. The snippet HTML contains an empty container, and a `publicWidget` fills it at runtime via JSON RPC.
+
+### Model
+
+```python
+from odoo import fields, models
+
+class GelatoGalleryImage(models.Model):
+    _name = 'gelato.gallery.image'
+    _description = 'Gelato Gallery Image'
+    _order = 'sequence, id'
+
+    name = fields.Char(string='Caption', required=True, translate=True)
+    image = fields.Image(string='Image', required=True, max_width=1200, max_height=1200)
+    sequence = fields.Integer(string='Sequence', default=10)
+    active = fields.Boolean(default=True)
+    website_id = fields.Many2one('website', string='Website', ondelete='cascade')
+```
+
+### Controller (JSON RPC endpoint)
+
+```python
+@http.route('/theme_<brand>/gallery_images', type='json', auth='public', website=True)
+def get_gallery_images(self):
+    website = request.website
+    domain = [
+        ('active', '=', True),
+        '|', ('website_id', '=', False), ('website_id', '=', website.id),
+    ]
+    images = request.env['gelato.gallery.image'].sudo().search(domain, order='sequence, id')
+    return [{
+        'id': img.id,
+        'name': img.name,
+        'image_url': f'/web/image/gelato.gallery.image/{img.id}/image' if img.image else '',
+    } for img in images]
+```
+
+### JS Widget (publicWidget + RPC)
+
+```javascript
+publicWidget.registry.GlGallery = publicWidget.Widget.extend({
+    selector: '.gl-gallery',
+    disabledInEditableMode: true,
+
+    start() {
+        this._super(...arguments);
+        return this._loadImages();
+    },
+
+    async _loadImages() {
+        let images;
+        try {
+            images = await rpc('/theme_<brand>/gallery_images', {});
+        } catch { return; }
+        if (!images || !images.length) return;
+
+        const grid = this.el.querySelector('.gl-gallery-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        images.forEach((img) => {
+            const item = document.createElement('div');
+            item.className = 'gl-gallery-item';
+            const imgEl = document.createElement('img');
+            imgEl.src = img.image_url;
+            imgEl.alt = img.name;
+            imgEl.loading = 'lazy';
+            item.appendChild(imgEl);
+            grid.appendChild(item);
+        });
+    },
+});
+```
+
+### Snippet XML (empty container)
+
+```xml
+<template id="s_<brand>_gallery" name="Gallery">
+    <section class="s_<brand>_gallery gl-gallery o_cc o_cc4 theme_<brand>_page">
+        <!-- Filled by JS via RPC -->
+        <div class="gl-gallery-grid"/>
+    </section>
+</template>
+```
+
+### Security (ir.model.access.csv)
+
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_gelato_gallery_image_public,gelato.gallery.image.public,model_gelato_gallery_image,base.group_public,1,0,0,0
+access_gelato_gallery_image_designer,gelato.gallery.image.designer,model_gelato_gallery_image,website.group_website_designer,1,1,1,1
+```
+
+**Two rows:** public read-only for the frontend RPC, full access for website designers in the admin.
+
+### Seed data (noupdate)
+
+```xml
+<data noupdate="1">
+    <record id="gallery_image_1" model="gelato.gallery.image">
+        <field name="name">Caption here</field>
+        <field name="image" type="base64" file="theme_<brand>/static/src/img/photo.webp"/>
+        <field name="sequence">10</field>
+    </record>
+</data>
+```
+
+Use `noupdate="1"` so admin edits are preserved on module upgrade. Use `type="base64" file="..."` to load images from the static directory.
+
+### Admin views
+
+Place views in `views/<model>_views.xml` with:
+- **List view** with `widget="handle"` on the sequence field for drag-reorder
+- **Form view** with `widget="image"` for the image field
+- **Menu item** under `website.menu_website_global_configuration`
+
+### Manifest ordering
+
+In `__manifest__.py` `data:` list:
+1. `security/ir.model.access.csv`
+2. `views/<model>_views.xml` (before pages)
+3. Snippet files
+4. `views/pages.xml`
+5. `data/<model>_data.xml` (seed data, at the end)
+
+---
+
+## Contact form via mail.mail
+
+For simple contact/inquiry forms that send email without creating leads:
+
+### Controller
+
+```python
+@http.route('/gelato/contact', type='http', auth='public', website=True,
+            methods=['POST'], csrf=True)
+def contact_form(self, **kwargs):
+    name = kwargs.get('name', '').strip()
+    email = kwargs.get('email', '').strip()
+
+    if not name or not email:
+        return werkzeug.utils.redirect('/?form=error#poptavka')
+
+    company = request.env['res.company'].sudo().browse(request.env.company.id)
+    recipient = company.email or 'info@example.com'
+
+    body = f"<h3>New inquiry</h3><p>From: {name} ({email})</p>"
+
+    try:
+        request.env['mail.mail'].sudo().create({
+            'subject': f'Inquiry – {name}',
+            'body_html': body,
+            'email_from': email,
+            'email_to': recipient,
+            'auto_delete': True,
+        }).send()
+    except Exception:
+        return werkzeug.utils.redirect('/?form=error#poptavka')
+
+    return werkzeug.utils.redirect('/?form=ok#poptavka')
+```
+
+### Key points
+
+- Add `'mail'` to `depends` in `__manifest__.py`
+- Use `csrf=True` (Odoo injects the token automatically in QWeb forms via `<input type="hidden" name="csrf_token".../>`)
+- **Redirect URL**: query params MUST come before hash fragment: `/?form=ok#section` not `/#section?form=ok` — the browser ignores everything after `#` in query parsing
+- JS feedback widget reads `window.location.search` for `?form=ok|error`, shows a banner, then cleans the URL with `history.replaceState`

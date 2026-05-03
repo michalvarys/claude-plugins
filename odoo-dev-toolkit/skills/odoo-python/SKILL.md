@@ -220,6 +220,45 @@ class CustomController(http.Controller):
 | `csrf` | `True`, `False` | `True` |
 | `cors` | `'*'` or specific origin | None |
 
+## Frontend Controller for Website Widgets
+
+### JSON controller for public frontend widgets
+
+When a `publicWidget` needs dynamic data (e.g. hero slides, testimonials), expose it via a JSON controller with `auth='public'` and `website=True`:
+
+```python
+from odoo import http
+from odoo.http import request
+
+
+class ThemeController(http.Controller):
+
+    @http.route('/theme_name/data_endpoint', type='json', auth='public', website=True)
+    def get_data(self):
+        website = request.website
+        domain = [
+            ('active', '=', True),
+            '|', ('website_id', '=', False), ('website_id', '=', website.id),
+        ]
+        records = request.env['model.name'].sudo().search(domain, order='sequence, id')
+        return [{
+            'id': r.id,
+            'name': r.name,
+            'image_url': f'/web/image/model.name/{r.id}/image' if r.image else '',
+        } for r in records]
+```
+
+Key points:
+- `type='json'` — the frontend calls this with JSON-RPC envelope, not plain HTTP
+- `auth='public'` — accessible without login (for public website pages)
+- `website=True` — `request.website` is available for multi-website filtering
+- `sudo()` on the recordset — public users don't have model access rights by default
+- `('website_id', '=', False)` in ORM is translated to `IS NULL` — matches records not assigned to any specific website
+- Return a plain list/dict — Odoo wraps it in JSON-RPC response automatically
+- The frontend calls it with: `import { rpc } from "@web/core/network/rpc"` + `await rpc('/theme_name/data_endpoint', {})`
+
+**Common pitfall:** `@web/core/network/rpc` exports `rpc` in Odoo 18, NOT `jsonrpc`. Using `import { jsonrpc }` silently returns `undefined` and the call fails inside try/catch without any visible error.
+
 ## Constraints
 
 ```python
