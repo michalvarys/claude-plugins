@@ -4,6 +4,10 @@ Complete toolkit for Odoo 18 development. Specialized skills covering the full d
 
 ## Skills
 
+### odoo-18.0
+The Odoo 18 skill serves as a centralized knowledge hub for developers building business applications on the Odoo ERP framework. It bridges the gap between Claude's general knowledge and the specific architectural requirements of version 18.0, offering insights into module development, ORM interactions, and frontend customizations. By providing direct access to implementation patterns and framework-specific logic, this skill ensures that developers can build robust, production-grade business solutions efficiently within the Claude Code environment.
+
+
 ### odoo-qweb-page
 Create SEO-optimized website pages using QWeb templates. Produces self-contained XML files with inline CSS/JS, complete with structured data (JSON-LD), OpenGraph meta tags, and Odoo website builder compatibility (drag-and-drop support).
 
