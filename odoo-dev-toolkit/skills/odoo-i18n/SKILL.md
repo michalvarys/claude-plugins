@@ -93,3 +93,45 @@ python3 odoo-bin -d dbname -u module_name --stop-after-init \
 4. **Email template `lang` field**: Set `<field name="lang">{{ object.lang or 'cs_CZ' }}</field>` to enable per-record language selection. Store the customer's language on the model.
 
 5. **Missing DB columns after upgrade**: If new fields are added but DB columns aren't created during upgrade, use manual `ALTER TABLE` as a fallback. Stale `__pycache__` can cause this.
+
+6. **Per-website view copies don't translate text after self-closing tags (CRITICAL)**: When a `theme.ir.ui.view` is copied to a per-website `ir.ui.view` (with `website_id` set), Odoo's translation loader fails to translate text nodes inside `<a>` elements that contain a self-closing child element before the text. For example:
+   ```xml
+   <a href="/"><i class="fa fa-home me-2"/>Home</a>
+   ```
+   The `Home` text node will NOT be translated even though the PO file has `msgid "Home"` with the correct `model_terms:theme.ir.ui.view,arch:` reference. The master `theme.ir.ui.view` may get the translation, but the per-website `ir.ui.view` copy retains the English text.
+
+   **Affected pattern:** `<a>` containing `<i class="..."/>text</a>` — the self-closing `<i/>` before the text node breaks Odoo's XML text-node extraction during theme copy.
+
+   **Not affected:** Text in simple elements like `<h6>`, `<span>`, `<p>` without preceding self-closing children — these translate normally.
+
+   **Fix:** After module upgrade with `--i18n-overwrite`, verify the per-website view's `arch_db->>'cs_CZ'` in the database. If link texts remain untranslated, apply a direct SQL `UPDATE` using chained `replace()` calls on the `arch_db` JSONB:
+
+   ```sql
+   UPDATE ir_ui_view
+   SET arch_db = jsonb_set(
+       arch_db::jsonb,
+       '{cs_CZ}',
+       to_jsonb(
+           replace(
+           replace(
+               arch_db::jsonb->>'cs_CZ',
+               '<i class="fa fa-home me-2"/>Home</a>',
+               '<i class="fa fa-home me-2"/>Úvod</a>'
+           ),
+               '<i class="fa fa-cubes me-2"/>Products</a>',
+               '<i class="fa fa-cubes me-2"/>Produkty</a>'
+           )
+       )
+   )
+   WHERE key = 'theme_xxx.vx_footer' AND website_id IS NOT NULL;
+   ```
+
+   **Prevention:** After every theme module upgrade that includes translations, always run:
+   ```bash
+   docker compose exec -T db psql -U <user> -d <db> -c "
+   SELECT key,
+       substring(arch_db::jsonb->>'cs_CZ' from 1 for 200) as cs_preview
+   FROM ir_ui_view
+   WHERE key LIKE 'theme_%' AND website_id IS NOT NULL;"
+   ```
+   And spot-check that translated text appears in the `cs_CZ` arch.

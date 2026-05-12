@@ -518,3 +518,57 @@ For records with `noupdate=True` in `ir_model_data`, module upgrade skips them. 
 1. Set `noupdate=False` temporarily: `UPDATE ir_model_data SET noupdate = false WHERE module = 'my_module' AND name = 'template_id';`
 2. Update directly via SQL with `jsonb_build_object()`
 3. Change `<data noupdate="0">` in XML (only affects fresh installs)
+
+### Per-website theme view copies have untranslated text in links (hard-earned)
+
+**Symptom:** After `--i18n-overwrite`, headings (`<h6>`, `<span>`) in the footer/header are translated, but link texts inside `<a>` elements remain in English when switching to Czech.
+
+**Root cause:** Odoo's theme copy mechanism (`_load_theme`) copies `theme.ir.ui.view` arch_db into per-website `ir.ui.view` records. During this copy, text nodes that follow a self-closing child element (`<i class="fa fa-xxx"/>Text`) are not properly extracted and matched against PO translations.
+
+**Affected HTML pattern:**
+```xml
+<!-- Text after self-closing <i/> is NOT translated in per-website copy -->
+<a href="/"><i class="fa fa-home me-2"/>Home</a>
+
+<!-- Simple text in <h6> IS translated correctly -->
+<h6 class="vx-footer-heading">Navigation</h6>
+```
+
+**Diagnostic:**
+```sql
+-- Check per-website view for untranslated text
+SELECT arch_db::jsonb->>'cs_CZ'
+FROM ir_ui_view
+WHERE key = 'theme_xxx.vx_footer' AND website_id IS NOT NULL;
+-- Look for English text inside <a> tags
+```
+
+**Fix:** Direct SQL replace on the per-website view:
+```sql
+UPDATE ir_ui_view
+SET arch_db = jsonb_set(
+    arch_db::jsonb, '{cs_CZ}',
+    to_jsonb(
+        replace(
+        replace(
+            arch_db::jsonb->>'cs_CZ',
+            '<i class="fa fa-home me-2"/>Home</a>',
+            '<i class="fa fa-home me-2"/>Úvod</a>'
+        ),
+            '<i class="fa fa-cubes me-2"/>Products</a>',
+            '<i class="fa fa-cubes me-2"/>Produkty</a>'
+        )
+    )
+)
+WHERE key = 'theme_xxx.vx_footer' AND website_id IS NOT NULL;
+```
+
+**Post-fix:** Restart the web container to clear the view cache:
+```bash
+docker compose restart web
+```
+
+**Prevention checklist for theme translations:**
+- [ ] After every `-u theme_xxx --i18n-overwrite`, query the per-website view's `arch_db->>'cs_CZ'` and verify link texts are translated
+- [ ] If untranslated, apply SQL fix for all `<a>` text nodes containing `<i/>` children
+- [ ] Consider adding the SQL fix to a post-upgrade script if the theme will be upgraded frequently

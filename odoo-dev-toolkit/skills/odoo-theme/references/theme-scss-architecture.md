@@ -742,3 +742,13 @@ Odoo's `s_website_form_dnone` class should hide fields like `email_to`, but cust
     display: none !important;
 }
 ```
+
+## Per-website View Copies Don't Translate Link Text (hard-earned)
+
+When a theme module has i18n PO files and is upgraded with `--i18n-overwrite`, translations are loaded into `arch_db` JSONB. However, per-website `ir.ui.view` copies (created by `_load_theme`) have a bug: **text nodes inside `<a>` elements that follow a self-closing child (`<i class="..."/>Text`) are not translated**, even though PO entries exist.
+
+**Works:** `<h6>Navigation</h6>` → translated to `<h6>Navigace</h6>` correctly.
+
+**Broken:** `<a href="/"><i class="fa fa-home me-2"/>Home</a>` → `Home` stays English in the per-website copy's `cs_CZ` arch.
+
+**Fix:** After every theme upgrade with translations, verify per-website views and apply SQL `replace()` on `arch_db::jsonb->>'cs_CZ'` for affected text nodes. See `odoo-i18n/references/i18n-patterns.md` → "Per-website theme view copies have untranslated text in links" for the full pattern.

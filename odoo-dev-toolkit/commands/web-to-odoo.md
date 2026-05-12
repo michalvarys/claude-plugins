@@ -356,6 +356,7 @@ docker compose logs -f --tail=200 web
 - [ ] Edit a product from the simplified form → save → verify the website reflects the change.
 - [ ] Website editor opens on a page without crashing (no `Cannot convert 'px,' units` errors).
 - [ ] Create a test content-editor user in `group_content_editor` → verify they see ONLY the `<Brand>` menu.
+- [ ] **If multi-language:** Switch to each non-default language and verify that ALL text in header, footer, and snippets is translated — especially link texts inside `<a>` elements with `<i/>` icons. Per-website view copies have a known bug where text nodes after self-closing children (`<i class="fa fa-xxx"/>Text`) are not translated. Fix with direct SQL `replace()` on `arch_db`. See `odoo-i18n/references/i18n-patterns.md` → "Per-website theme view copies have untranslated text in links".
 
 If any checkbox fails, diagnose with `odoo-docker-dev/references/debug-workflows.md` before marking the migration complete.
 
