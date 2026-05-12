@@ -413,6 +413,41 @@ Read `references/generation-checklist.md` and tick every item. Common failures c
 - Snippet `<section>` missing `s_<id>` class → drop-zone detection silently fails.
 - Multi-value `transition` / `box-shadow` leaked into SCSS → editor crash.
 
+### Step 13b: Theme pattern validation (CRITICAL — from real migration bugs)
+
+These checks catch the most common and damaging bugs from real theme migrations. See `odoo-theme/references/theme-scss-architecture.md` for full context on each.
+
+**1. No `var(--o-color-X)` in component SCSS:**
+```bash
+grep -rn 'var(--o-color-' theme_<brand>/static/src/scss/theme.scss \
+    theme_<brand>/static/src/scss/header.scss \
+    theme_<brand>/static/src/scss/footer.scss
+```
+If found on any rule setting `color`, `background`, `border-color`, or `fill` on a component (cards, buttons, headings, badges, form inputs), replace with a fixed SCSS variable. `var(--o-color-X)` values get reassigned when users change colors in Theme panel → silent contrast breakage.
+
+**2. No `var(--o-color-X)` in inline XML styles:**
+```bash
+grep -rn 'var(--o-color-' theme_<brand>/views/
+```
+Replace every match with a fixed hex value.
+
+**3. Asset sequence fields present:**
+Verify `data/ir_asset.xml` has `<field name="sequence">` on every `theme.ir.asset` record: theme=100, header=110, footer=120, responsive=200. Without these, responsive overrides can load before desktop rules and be silently ignored.
+
+**4. Offcanvas drawer pattern (if using mobile offcanvas):**
+- All `<a>` in offcanvas body must have `data-bs-dismiss="offcanvas"`
+- Header SCSS must include `transform: none !important` and `overflow: visible !important` on `#wrapwrap header` elements to prevent stacking context from breaking the drawer
+
+**5. Hidden form field override:**
+If any snippet uses `s_website_form`, add to theme.scss:
+```scss
+.s_website_form_dnone {
+    display: none !important;
+}
+```
+
+**All 5 checks must pass before proceeding to Step 14.**
+
 ### Step 14: Hand off to docker-dev
 
 Print this to the user:
@@ -436,3 +471,7 @@ Print this to the user:
 - **Inline `url()` in SCSS** — forbidden for fonts (Odoo bundler limitation from `odoo-theme` skill). Fonts go via `<link>` in layout.xml or via `$o-theme-font-configs`.
 - **Images path prefix** — every `<img src>` and `background-image: url()` in snippets must be `/theme_<brand>/static/src/img/...`, absolute from the Odoo root.
 - **Admin pages** — if the static bundle accidentally includes `/admin/*` pages, EXCLUDE them from `pages.xml`. Admin migration is a separate skill.
+- **NEVER use `var(--o-color-X)` for component colors** — these CSS custom properties get reassigned when users change Theme panel colors. Use fixed SCSS variables for all contrast-critical styling. See `odoo-theme/references/theme-scss-architecture.md` → "CRITICAL: var(--o-color-X) vs Fixed SCSS Variables".
+- **Asset sequence fields are mandatory** — every `theme.ir.asset` record in `ir_asset.xml` MUST have `<field name="sequence">`. Without them, `responsive.scss` can load before `theme.scss` and all media queries silently fail.
+- **Offcanvas mobile menu needs 3 fixes** — `data-bs-dismiss="offcanvas"` on all links, `transform: none !important` on header, `overflow: visible !important` on header. See `odoo-theme/references/theme-scss-architecture.md` → "Offcanvas Drawer on Mobile".
+- **`.s_website_form_dnone` needs explicit hide** — theme SCSS can override Odoo's hidden field class. Always add `.s_website_form_dnone { display: none !important; }` to theme.scss.

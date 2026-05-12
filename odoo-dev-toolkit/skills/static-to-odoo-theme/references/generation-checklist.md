@@ -82,6 +82,7 @@ Walk this list before declaring the generated theme module ready. Every item is 
 - [ ] `theme.scss`, `header.scss`, `footer.scss`, `responsive.scss` → bundle `web.assets_frontend`
 - [ ] `main.js` → bundle `web.assets_frontend`
 - [ ] SCSS asset records declared in the correct order (responsive LAST in frontend bundle)
+- [ ] **Every `theme.ir.asset` record has explicit `<field name="sequence">`**: theme=100, header=110, footer=120, responsive=200. Without this, responsive overrides can load before desktop rules and be silently ignored.
 
 ## SCSS — editor-safe sweep
 
@@ -91,6 +92,25 @@ Walk this list before declaring the generated theme module ready. Every item is 
 - [ ] No `:has()` selector anywhere
 - [ ] No `@import url(...)` for fonts
 - [ ] No `@font-face` with `src: url(...)` pointing at theme-relative font files (fonts declared in layout.xml instead)
+
+## SCSS — color variable safety (CRITICAL)
+
+- [ ] `grep -rn 'var(--o-color-' static/src/scss/theme.scss static/src/scss/header.scss static/src/scss/footer.scss` returns NOTHING — no `var(--o-color-X)` in component SCSS
+- [ ] `grep -rn 'var(--o-color-' views/` returns NOTHING — no `var(--o-color-X)` in inline XML styles
+- [ ] All brand colors defined as fixed SCSS variables (`$brand-white`, `$brand-accent`, etc.) at the top of each SCSS file
+- [ ] Cards, buttons, headings, badges, form inputs, icon circles all use fixed SCSS variables for foreground/background — never `var(--o-color-X)`
+
+**Why this matters:** `var(--o-color-1)` through `var(--o-color-5)` get reassigned when users change colors in Theme panel. Using them for component styling causes silent contrast breakage (e.g., white card becomes dark → dark text on dark background). See `odoo-theme/references/theme-scss-architecture.md` → "CRITICAL: var(--o-color-X) vs Fixed SCSS Variables".
+
+## Offcanvas mobile menu
+
+- [ ] If using Bootstrap offcanvas for mobile menu: all `<a>` inside offcanvas body have `data-bs-dismiss="offcanvas"` attribute
+- [ ] Header SCSS includes stacking context fix: `transform: none !important; will-change: auto !important;` on `#wrapwrap header#top`, `.o_header_standard`, `.o_header_affixed`
+- [ ] Header SCSS includes `overflow: visible !important` on header elements and nav
+
+## Hidden form fields
+
+- [ ] If any snippet uses `s_website_form`: theme.scss includes `.s_website_form_dnone { display: none !important; }`
 
 ## SCSS — CSS Grid + clearfix guard
 
