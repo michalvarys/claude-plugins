@@ -1,7 +1,7 @@
 ---
 name: odoo-i18n
 description: |
-  Add multi-language (i18n) support to Odoo 18 modules — PO files, JSONB translations, JS _t(), email templates, and website language configuration. Use this skill when the user wants to translate an Odoo module, add language support, create PO files, internationalize JS code, or make email templates multilingual. Trigger on: "translate", "i18n", "translation", "PO file", "language", "multilingual", "překlad", "přeložit", "jazykové mutace", "vícejazyčný", "lokalizace", "internationalization", "_t()", "multi-language".
+  Add multi-language (i18n) support to Odoo 18 modules — PO files, JSONB translations, JS _t(), email templates, website language configuration, and XML-RPC page translations. Use this skill when the user wants to translate an Odoo module, translate an existing Odoo page via API, add language support, create PO files, internationalize JS code, or make email templates multilingual. Trigger on: "translate", "i18n", "translation", "PO file", "language", "multilingual", "překlad", "přeložit", "jazykové mutace", "vícejazyčný", "lokalizace", "internationalization", "_t()", "multi-language", "update_field_translations", "xml_translate", "translate page", "přeložit stránku".
 ---
 
 # Odoo 18 Internationalization (i18n)
@@ -9,6 +9,8 @@ description: |
 Add complete multi-language support to Odoo 18 modules. This covers Python model strings, QWeb templates, JavaScript UI, email templates, and website language configuration.
 
 Read `references/i18n-patterns.md` for exact patterns, PO file format, and examples before writing any translation code.
+
+Read `references/xmlrpc-page-translation.md` when translating existing Odoo pages remotely via XML-RPC API (using `update_field_translations` for `xml_translate` fields like `arch_db`).
 
 ## Core Principles
 
@@ -81,6 +83,27 @@ For website modules, ensure target languages are:
 python3 odoo-bin -d dbname -u module_name --stop-after-init \
   --load-language=cs_CZ,uk_UA --i18n-overwrite
 ```
+
+## Translating Existing Pages via XML-RPC API
+
+When you need to translate an existing Odoo website page remotely (without CLI access), use the XML-RPC `update_field_translations` method. This is the ONLY correct approach for `xml_translate` fields like `arch_db` on `ir.ui.view`.
+
+Read `references/xmlrpc-page-translation.md` for the complete workflow, code examples, and pitfall documentation.
+
+### Quick Summary
+
+1. **Find the view ID** — search `website.page` by URL, get `view_id`
+2. **Extract all translatable terms** — call `get_field_translations(view_id, 'arch_db')`, filter by target lang
+3. **Build mapping** — `{exact_source_string: translated_string}` for each term
+4. **Apply** — call `update_field_translations([view_id], 'arch_db', {'cs_CZ': mapping})`
+5. **Verify** — call `get_field_translations` again, count empty vs translated
+
+### Critical Rules
+
+- **NEVER use `write()` with language context** for `xml_translate` fields — it overwrites the base content
+- **Source strings must match exactly** — same whitespace, unicode chars, HTML structure
+- **Identity translations are silently skipped** — "FAQ" → "FAQ" won't be stored, but displays correctly via fallback
+- **HTML structure must be preserved** — only change text content, never add/remove tags
 
 ## Key Gotchas
 
