@@ -1,0 +1,181 @@
+/* VARYSHOP BRAND SYSTEM v2 — TMAVÝ (ads / reklamy / reels)
+ * Kanonický zdroj: extrahováno z varyshop-landing/preview/ad-creative-ai-workflows.html
+ * Paralela ke světlému _shared/brand.css. NIKDY neměnit paletu ad-hoc.
+ *
+ * Klíčové (co odlišuje SPRÁVNÝ tmavý od špatného):
+ *   - Fonty Inter + Inter Tight (NIKDY Manrope!)
+ *   - Modrá #6EA8FE (NE #5B9DFF), žlutá #FFB84E (NE #F5A623/oranžová)
+ *   - Pozadí neutrální #1A1A1A (NE modračerná #0C0F14)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500&family=Inter+Tight:wght@700;800;900&display=swap');
+
+:root {
+  /* Modrá paleta (tmavý režim) */
+  --vs-blue: #6EA8FE;
+  --vs-blue-dark: #3D7BD9;
+  --vs-blue-light: #C4D7FF;
+  --vs-blue-bg: #EAF1FF;
+  --vs-blue-bg-soft: #F5F8FF;
+
+  /* Žlutý akcent */
+  --vs-accent: #FFB84E;
+
+  /* Neutrály — pozadí je NEUTRÁLNÍ černá, ne modračerná */
+  --vs-black: #1A1A1A;
+  --vs-dark: #2A2A2A;
+  --vs-gray: #6B7280;
+  --vs-light-gray: #E5E7EB;
+  --vs-white: #FFFFFF;
+
+  /* Glow akcenty */
+  --vs-glow-blue: 0 0 80px rgba(110,168,254,0.30);
+  --vs-glow-yellow: 0 0 50px rgba(255,184,78,0.40);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--vs-black);
+  color: var(--vs-white);
+}
+
+/* === CANVAS === */
+.ad, .slide-dark {
+  position: relative;
+  background: var(--vs-black);
+  overflow: hidden;
+  color: var(--vs-white);
+}
+/* Ambient záře do rohů (signature tmavého stylu) */
+.ad-glow-blue {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(110,168,254,0.32) 0%, transparent 70%);
+}
+.ad-glow-yellow {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,184,78,0.18) 0%, transparent 70%);
+}
+
+/* === LOGO === */
+.vs-brand-dark {
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: 0.1em;
+  color: var(--vs-white);
+}
+.vs-brand-dark .dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  background: var(--vs-accent);
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: super;
+}
+
+/* === EYEBROW TAG (žlutá pilulka) === */
+.eyebrow-tag-dark {
+  display: inline-block;
+  background: var(--vs-accent);
+  color: var(--vs-black);
+  padding: 12px 22px;
+  font-weight: 800; font-size: 13px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  border-radius: 4px;
+}
+.eyebrow-tag-dark.blue { background: var(--vs-blue); color: var(--vs-white); }
+
+/* === TYPOGRAFIE === */
+.headline-dark {
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--vs-white);
+}
+.headline-dark .em { color: var(--vs-blue); }
+.headline-dark .acc { color: var(--vs-accent); }
+.headline-dark .strike {
+  color: rgba(255,255,255,0.32);
+  position: relative; display: inline-block;
+}
+.headline-dark .strike::after {
+  content: ''; position: absolute;
+  top: 50%; left: -4px; right: -4px; height: 8px;
+  background: var(--vs-gray); opacity: 0.55;
+  transform: rotate(-2deg);
+}
+
+.body-dark {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.4;
+}
+.muted-dark { color: rgba(255,255,255,0.6); }
+
+/* === PAIN / BENEFIT BULLETS (modrý left-border, glass card) === */
+.pain-dark {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.05);
+  border-left: 3px solid var(--vs-blue);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+.pain-dark .num {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(110,168,254,0.15);
+  border: 1.5px solid var(--vs-blue);
+  color: var(--vs-blue);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Inter Tight', sans-serif; font-weight: 900; font-size: 13px;
+}
+.pain-dark .txt { font-weight: 600; color: #f0f0f0; line-height: 1.35; }
+.pain-dark .txt strong { color: var(--vs-accent); font-weight: 800; }
+.pain-dark .txt .blue { color: var(--vs-blue); font-weight: 800; }
+
+/* === PILL (bullet chip) === */
+.pill-dark {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 22px;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  font-weight: 700; color: var(--vs-white);
+}
+.pill-dark .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--vs-accent); flex-shrink: 0; }
+.pill-dark.accent { background: rgba(255,184,78,0.16); border-color: var(--vs-accent); color: var(--vs-accent); }
+
+/* === CTA === */
+.cta-dark {
+  display: inline-block;
+  padding: 18px 32px;
+  background: var(--vs-blue);
+  color: var(--vs-white);
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 900; font-size: 22px;
+  letter-spacing: 0.04em;
+  border-radius: 8px;
+}
+.cta-dark.accent { background: var(--vs-accent); color: var(--vs-black); box-shadow: var(--vs-glow-yellow); }
+.cta-dark .acc { color: var(--vs-accent); }
+
+/* === × KŘÍŽKY (modré, decentní) === */
+.x-mark-dark {
+  position: absolute; width: 36px; height: 36px;
+  pointer-events: none; opacity: 0.4;
+}
+.x-mark-dark::before, .x-mark-dark::after {
+  content: ''; position: absolute; top: 50%; left: 0; right: 0;
+  height: 2px; background: var(--vs-blue);
+}
+.x-mark-dark::before { transform: rotate(45deg); }
+.x-mark-dark::after { transform: rotate(-45deg); }
+.x-mark-dark.lg { width: 56px; height: 56px; }
+.x-mark-dark.lg::before, .x-mark-dark.lg::after { height: 3px; }
+
+/* === ROBOT (tmavý styl je používá; asset folder brand-style-resources) === */
+.robot-dark { position: absolute; }
+.robot-dark img { width: 100%; height: 100%; object-fit: contain; }

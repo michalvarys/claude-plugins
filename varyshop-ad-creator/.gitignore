@@ -1,0 +1,4 @@
+scripts/node_modules/
+*.png
+*.mp4
+!assets/robots/*.png

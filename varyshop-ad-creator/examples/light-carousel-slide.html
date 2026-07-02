@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Carousel 2 / Slide 1 — Hook</title>
+<link rel="stylesheet" href="../assets/css/brand.css">
+<style>
+.slide { background: var(--vs-white); padding: 90px 80px 80px; }
+
+.numbers-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 30px 0 50px;
+}
+.num-row {
+  display: flex;
+  align-items: baseline;
+  gap: 36px;
+}
+.big-num {
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 900;
+  font-size: 200px;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  width: 220px;
+}
+.num-row.r1 .big-num { color: var(--vs-blue); }
+.num-row.r2 .big-num { color: var(--vs-blue-mid); }
+.num-row.r3 .big-num { color: var(--vs-light-gray); }
+.num-label {
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 800;
+  font-size: 56px;
+  letter-spacing: -0.02em;
+  color: var(--vs-black);
+}
+.italic-comment {
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 28px;
+  color: var(--vs-blue);
+  border-left: 3px solid var(--vs-blue);
+  padding-left: 24px;
+}
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="x-line lg" style="top: 200px; right: 90px;"></div>
+  <div class="x-line dim" style="bottom: 240px; right: 60px;"></div>
+  <div class="x-line sm faint" style="top: 60%; left: 50px;"></div>
+
+  <div class="content-layer">
+    <div class="vs-top">
+      <div class="vs-brand">VARYSHOP<span class="blue-dot">.</span></div>
+      <div class="vs-counter">01 / 07</div>
+    </div>
+
+    <div class="eyebrow-tag">PRO MAJITELE VÍCE FIREM</div>
+
+    <div class="numbers-grid">
+      <div class="num-row r1"><div class="big-num">3</div><div class="num-label">firmy.</div></div>
+      <div class="num-row r2"><div class="big-num">5</div><div class="num-label">Excelů.</div></div>
+      <div class="num-row r3"><div class="big-num">0</div><div class="num-label">přehledu.</div></div>
+    </div>
+
+    <div class="italic-comment">Zní povědomě?</div>
+  </div>
+
+  <div class="vs-bottom">
+    <div class="vs-url">varyshop<span class="blue">.eu</span></div>
+    <div class="vs-swipe"><span>SWIPE</span><div class="arrow"></div></div>
+  </div>
+</div>
+</body>
+</html>

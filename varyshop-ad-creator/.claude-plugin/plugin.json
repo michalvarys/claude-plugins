@@ -1,0 +1,18 @@
+{
+  "author": {
+    "name": "Michal Varys"
+  },
+  "description": "Create Varyshop-branded creatives — static ads, multi-slide carousels, and animated reels — in the two correct v2 brand styles (LIGHT: white bg + blue #3DA5E0 for carousels/posts; DARK: #1A1A1A + blue #6EA8FE + yellow #FFB84E for ads/reels). Hormozi-grade copy, self-contained brand CSS, robots, examples, and a Node+Puppeteer render pipeline. Just type a command and describe the creative.",
+  "keywords": [
+    "varyshop",
+    "ads",
+    "carousel",
+    "reels",
+    "brand",
+    "marketing",
+    "content-creation",
+    "creative"
+  ],
+  "name": "varyshop-ad-creator",
+  "version": "1.0.0"
+}

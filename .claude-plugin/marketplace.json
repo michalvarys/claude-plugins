@@ -15,9 +15,9 @@
       "description": "Create branded social media content — static posts, animated videos, carousels, voiceovers, background music — with scheduling and automated publishing pipelines."
     },
     {
-      "name": "odoo-dev-toolkit",
-      "source": "./odoo-dev-toolkit",
-      "description": "Complete toolkit for Odoo 18 development — QWeb website pages, module scaffolding, XML views, Python models, controllers, and wizards."
+      "name": "varyshop-ad-creator",
+      "source": "./varyshop-ad-creator",
+      "description": "Create Varyshop-branded creatives — static ads, multi-slide carousels, and animated reels — in the two correct v2 brand styles (light + dark), with Hormozi-grade copy. Self-contained CSS, robots, examples, and a Node+Puppeteer renderer. Just type a command and describe the creative."
     },
     {
       "name": "odoo-crm-toolkit",
