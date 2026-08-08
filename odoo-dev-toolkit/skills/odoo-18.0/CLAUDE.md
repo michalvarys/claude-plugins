@@ -38,6 +38,7 @@ skills/odoo-18.0/
 
 | Task | Guide |
 |------|-------|
+| Avoiding critical pitfalls (crashes, data loss) | `references/odoo-18-critical-rules.md` |
 | Creating actions, menus, cron jobs | `references/odoo-18-actions-guide.md` |
 | Creating a new module | `references/odoo-18-development-guide.md` |
 | Configuring __manifest__.py | `references/odoo-18-manifest-guide.md` |

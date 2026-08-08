@@ -21,6 +21,7 @@ Master index for all Odoo 18 development guides. Read the appropriate guide from
 | Actions | `references/odoo-18-actions-guide.md` | Creating actions, menus, scheduled jobs, server actions |
 | API Decorators | `references/odoo-18-decorator-guide.md` | Using @api decorators, compute fields, validation |
 | Controllers | `references/odoo-18-controller-guide.md` | Writing HTTP endpoints, routes, web controllers |
+| Critical Rules | `references/odoo-18-critical-rules.md` | Pitfalls that break builds or destroy data — check before writing code |
 | Data Files | `references/odoo-18-data-guide.md` | XML/CSV data files, records, shortcuts |
 | Development | `references/odoo-18-development-guide.md` | Creating modules, manifest, reports, security, wizards |
 | Field Types | `references/odoo-18-field-guide.md` | Defining model fields, choosing field types |

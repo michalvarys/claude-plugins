@@ -61,6 +61,7 @@ skills/odoo-18.0/
 | `SKILL.md` | Master index for all guides | Find the right guide for your task |
 | `references/odoo-18-actions-guide.md` | Actions (window, URL, server, cron) | Creating actions, menus, scheduled jobs |
 | `references/odoo-18-controller-guide.md` | HTTP controllers, routing | Writing endpoints |
+| `references/odoo-18-critical-rules.md` | Critical pitfalls (translate+store, XPath, hooks, ir_attachment) | Before writing any Odoo code |
 | `references/odoo-18-data-guide.md` | XML/CSV data files, records | Creating data files |
 | `references/odoo-18-decorator-guide.md` | @api decorators usage | Using @api decorators |
 | `references/odoo-18-development-guide.md` | Module structure, wizards | Creating new modules |
@@ -98,6 +99,7 @@ skills/odoo-18.0/
 | `SKILL.md` | `**/*.{py,xml}` |
 | `references/odoo-18-actions-guide.md` | `**/*.{py,xml}` |
 | `references/odoo-18-controller-guide.md` | `**/controllers/**/*.py` |
+| `references/odoo-18-critical-rules.md` | `**/*.{py,xml}` |
 | `references/odoo-18-data-guide.md` | `**/*.{xml,csv}` |
 | `references/odoo-18-decorator-guide.md` | `**/models/**/*.py` |
 | `references/odoo-18-development-guide.md` | `**/*.{py,xml,csv}` |
